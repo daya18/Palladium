@@ -24,6 +24,11 @@ if ( TARGET SDL2::SDL2main )
 	target_link_libraries ( Palladium PRIVATE SDL2::SDL2main )
 endif ()
 
+# Add GLM
+add_subdirectory ( external/GLM )
+target_link_libraries ( Palladium PRIVATE glm )
+
+
 
 target_sources ( Palladium PRIVATE "source/Palladium.cpp" )
 
