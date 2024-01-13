@@ -12,7 +12,20 @@ endif()
 project ("Palladium")
 
 # Add source to this project's executable.
-add_executable (Palladium "source/Palladium.cpp" )
+add_executable ( Palladium )
+
+# Add sdl
+add_subdirectory ( external/SDL )
+set ( SDL_TEST OFF )
+set ( SDL_STATIC ON )
+target_link_libraries ( Palladium PRIVATE SDL2::SDL2-static )
+
+if ( TARGET SDL2::SDL2main )
+	target_link_libraries ( Palladium PRIVATE SDL2::SDL2main )
+endif ()
+
+
+target_sources ( Palladium PRIVATE "source/Palladium.cpp" )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Palladium PROPERTY CXX_STANDARD 20)
