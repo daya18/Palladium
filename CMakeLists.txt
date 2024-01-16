@@ -28,9 +28,22 @@ endif ()
 add_subdirectory ( external/GLM )
 target_link_libraries ( Palladium PRIVATE glm )
 
+# Add Vulkan
+include ( "FindVulkan" )
+message ( "Vulkan Found: ${Vulkan_FOUND}" )
+target_link_libraries ( Palladium PRIVATE Vulkan::Vulkan )
 
 
-target_sources ( Palladium PRIVATE "source/Palladium.cpp" )
+
+target_sources ( Palladium PRIVATE 
+	"source/Main.cpp"  
+	source/Core.cpp
+ "source/Application.cpp" )
+
+# Setup precompiled headers
+target_precompile_headers ( Palladium PRIVATE source/PCH.hpp )
+
+target_compile_definitions ( Palladium PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Palladium PROPERTY CXX_STANDARD 20)
