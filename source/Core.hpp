@@ -34,4 +34,17 @@ namespace pd
 	vk::RenderPass CreateRenderPass ( vk::Device, vk::Format outputFormat );
 	std::vector <vk::ImageView> CreateSwapchainImageViews ( vk::Device, vk::SwapchainKHR, vk::Format format );
 	std::vector <vk::Framebuffer> CreateFramebuffers ( vk::Device, vk::RenderPass, std::vector <vk::ImageView> attachments, glm::vec2 const & size );
+	vk::PipelineLayout CreatePipelineLayout ( vk::Device );
+	vk::ShaderModule CreateShaderModuleFromFile ( vk::Device, std::string const & filePath );
+
+	struct GraphicsPipelineCreateInfo
+	{
+		vk::Device device; 
+		vk::RenderPass renderPass;
+		uint32_t subpass;
+		vk::PipelineLayout pipelineLayout;
+	};
+
+	vk::Pipeline CreateGraphicsPipeline ( GraphicsPipelineCreateInfo const & );
+	void Present ( vk::Queue, vk::SwapchainKHR, uint32_t imageIndex, vk::Semaphore waitSemaphore );
 }

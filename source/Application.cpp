@@ -29,12 +29,16 @@ namespace pd
 		imageAvailableSemaphore = device.createSemaphore ( {} );
 		renderFinishedSemaphore = device.createSemaphore ( {} );
 		renderFinishedFence = device.createFence ( { vk::FenceCreateFlagBits::eSignaled } );
+		pipelineLayout = CreatePipelineLayout ( device );
+		graphicsPipeline = CreateGraphicsPipeline ( { device, renderPass, 0, pipelineLayout } );
 	}
 
 	Application::~Application ()
 	{
 		device.waitIdle ();
 
+		device.destroy ( graphicsPipeline );
+		device.destroy ( pipelineLayout );
 		device.destroy ( renderFinishedFence );
 		device.destroy ( renderFinishedSemaphore );
 		device.destroy ( imageAvailableSemaphore );
@@ -97,11 +101,12 @@ namespace pd
 			renderCommandBuffer.begin ( beginInfo );
 
 			vk::Rect2D renderArea { { 0, 0 }, swapchainExtent };
-			std::vector <vk::ClearValue> clearValues { { { 0.0f, 1.0f, 0.0f, 0.0f } } };
+			std::vector <vk::ClearValue> clearValues { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
 			vk::RenderPassBeginInfo renderPassBeginInfo { renderPass, framebuffers [ imageIndex ], renderArea, clearValues };
 			
 			renderCommandBuffer.beginRenderPass ( renderPassBeginInfo, vk::SubpassContents::eInline );
-
+			renderCommandBuffer.bindPipeline ( vk::PipelineBindPoint::eGraphics, graphicsPipeline );
+			renderCommandBuffer.draw ( 3, 1, 0, 0 );
 			renderCommandBuffer.endRenderPass ();
 
 			renderCommandBuffer.end ();
@@ -125,20 +130,7 @@ namespace pd
 				queues.graphicsQueue.submit ( { info }, renderFinishedFence );
 			}
 
-			{
-				auto waitSemaphores = { renderFinishedSemaphore };
-				auto swapchains = { swapchain };
-				std::vector <uint32_t> imageIndices { imageIndex };
-
-				vk::PresentInfoKHR presentInfo
-				{
-					waitSemaphores,
-					swapchains,
-					imageIndices
-				};
-
-				queues.presentationQueue.presentKHR ( presentInfo );
-			}
+			Present ( queues.presentationQueue, swapchain, imageIndex, renderFinishedSemaphore );
 		}
 	}
 }

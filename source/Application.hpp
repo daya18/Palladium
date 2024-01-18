@@ -30,5 +30,7 @@ namespace pd
 		vk::Semaphore imageAvailableSemaphore;
 		vk::Semaphore renderFinishedSemaphore;
 		vk::Fence renderFinishedFence;
+		vk::PipelineLayout pipelineLayout;
+		vk::Pipeline graphicsPipeline;
 	};
 }

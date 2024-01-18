@@ -263,5 +263,142 @@ namespace pd
 
 		return framebuffers;
 	}
+	
+	vk::PipelineLayout CreatePipelineLayout ( vk::Device device )
+	{
+		vk::PipelineLayoutCreateInfo createInfo
+		{
+			{},
+			{},
+			{}
+		};
+
+		return device.createPipelineLayout ( createInfo );
+	}
+	
+	vk::ShaderModule CreateShaderModuleFromFile ( vk::Device device, std::string const & filePath )
+	{
+		std::ifstream file { filePath, std::ios::ate | std::ios::binary };
+		auto size { file.tellg () };
+		file.seekg ( 0 );
+		std::string data { ( std::ostringstream {} << file.rdbuf () ).str () };
+
+		std::vector <uint32_t> code ( size );
+		std::memcpy ( code.data (), data.data (), data.size () );
+
+		vk::ShaderModuleCreateInfo createInfo { {}, static_cast <size_t> ( size ), code.data () };
+		return device.createShaderModule ( createInfo );
+	}
+
+	vk::Pipeline CreateGraphicsPipeline ( GraphicsPipelineCreateInfo const & info )
+	{
+		vk::ShaderModule vertexShader { CreateShaderModuleFromFile ( info.device, "shader/build/shader.spv.vert" ) };
+		vk::ShaderModule fragmentShader { CreateShaderModuleFromFile ( info.device, "shader/build/shader.spv.frag" ) };
+
+		std::vector <vk::PipelineShaderStageCreateInfo> shaderStages
+		{
+			{ {}, vk::ShaderStageFlagBits::eVertex, vertexShader, "main" },
+			{ {}, vk::ShaderStageFlagBits::eFragment, fragmentShader, "main" }
+		};
+		
+		std::vector <vk::VertexInputBindingDescription> vertexBindings { /*{ 0, sizeof ( float ) * 3, vk::VertexInputRate::eVertex }*/ };
+		std::vector <vk::VertexInputAttributeDescription> vertexAttributes { /*{ 0, 0, vk::Format::eR32G32B32Sfloat, 0 }*/ };
+
+		vk::PipelineVertexInputStateCreateInfo vertexInputState
+		{ {}, vertexBindings, vertexAttributes };
+
+		vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState
+		{ {}, vk::PrimitiveTopology::eTriangleList, VK_FALSE };
+
+		std::vector <vk::Viewport> viewports { { 0, 0, 1280, 720, 0.0f, 1.0f } };
+		std::vector <vk::Rect2D> scissors { { { 0, 0 }, { 1280, 720 } } };
+
+		vk::PipelineViewportStateCreateInfo viewportState { {}, viewports, scissors };
+
+		vk::PipelineRasterizationStateCreateInfo rasterizationState
+		{
+			{},
+			VK_FALSE,
+			VK_FALSE,
+			vk::PolygonMode::eFill,
+			vk::CullModeFlagBits::eNone,
+			{},
+			{},
+			{},
+			{},
+			{},
+			1.0f
+		};
+		
+		vk::PipelineMultisampleStateCreateInfo multisampleState
+		{
+			{},
+			vk::SampleCountFlagBits::e1,
+			VK_FALSE
+		};
+
+		std::vector <vk::PipelineColorBlendAttachmentState> colorBlendAttachmentStates
+		{
+			{
+				VK_FALSE,
+				{},
+				{},
+				{},
+				{},
+				{},
+				{},
+				vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
+			}
+		};
+
+		vk::PipelineColorBlendStateCreateInfo colorBlendState
+		{
+			{},
+			VK_FALSE,
+			{},
+			colorBlendAttachmentStates
+		};
+
+		vk::GraphicsPipelineCreateInfo createInfo 
+		{
+			{},
+			shaderStages,
+			&vertexInputState,
+			&inputAssemblyState,
+			nullptr,
+			&viewportState,
+			&rasterizationState,
+			&multisampleState,
+			nullptr,
+			&colorBlendState,
+			{},
+			info.pipelineLayout,
+			info.renderPass,
+			info.subpass,
+		};
+
+		auto pipeline { info.device.createGraphicsPipeline ( {}, createInfo ).value };
+
+		info.device.destroy ( vertexShader );
+		info.device.destroy ( fragmentShader );
+
+		return pipeline;
+	}
+
+	void Present ( vk::Queue queue, vk::SwapchainKHR swapchain, uint32_t imageIndex, vk::Semaphore waitSemaphore )
+	{
+		auto waitSemaphores = { waitSemaphore };
+		auto swapchains = { swapchain };
+		std::vector <uint32_t> imageIndices { imageIndex };
+
+		vk::PresentInfoKHR presentInfo
+		{
+			waitSemaphores,
+			swapchains,
+			imageIndices
+		};
+
+		queue.presentKHR ( presentInfo );
+	}
 
 }
