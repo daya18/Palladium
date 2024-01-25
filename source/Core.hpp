@@ -30,11 +30,11 @@ namespace pd
 
 	void CreateDevice ( vk::PhysicalDevice, vk::SurfaceKHR surface, vk::Device &, DeviceQueues & );
 	vk::SurfaceFormatKHR SelectSurfaceFormat ( vk::PhysicalDevice, vk::SurfaceKHR );
-	vk::SwapchainKHR CreateSwapchain ( vk::PhysicalDevice, vk::Device, vk::SurfaceKHR, vk::SurfaceFormatKHR const &, glm::vec2 const & size );
+	vk::SwapchainKHR CreateSwapchain ( vk::PhysicalDevice, vk::Device, vk::SurfaceKHR, vk::SurfaceFormatKHR const &, glm::vec2 const & size, vk::SwapchainKHR oldSwapchain = {} );
 	vk::RenderPass CreateRenderPass ( vk::Device, vk::Format outputFormat );
 	std::vector <vk::ImageView> CreateSwapchainImageViews ( vk::Device, vk::SwapchainKHR, vk::Format format );
 	std::vector <vk::Framebuffer> CreateFramebuffers ( vk::Device, vk::RenderPass, std::vector <vk::ImageView> attachments, glm::vec2 const & size );
-	vk::PipelineLayout CreatePipelineLayout ( vk::Device );
+	vk::PipelineLayout CreatePipelineLayout ( vk::Device, std::vector <vk::DescriptorSetLayout> const & = {} );
 	vk::ShaderModule CreateShaderModuleFromFile ( vk::Device, std::string const & filePath );
 
 	struct GraphicsPipelineCreateInfo
@@ -56,14 +56,12 @@ namespace pd
 		std::vector <vk::PipelineStageFlags> waitStages = {}
 	);
 
-	void Present ( vk::Queue, vk::SwapchainKHR, uint32_t imageIndex, vk::Semaphore waitSemaphore );
-	enum class BufferUsages { vertexBuffer, indexBuffer, stagingBuffer };
+	vk::Result Present ( vk::Queue, vk::SwapchainKHR, uint32_t imageIndex, vk::Semaphore waitSemaphore );
+	enum class BufferUsages { vertexBuffer, indexBuffer, uniformBuffer, stagingBuffer };
 	vk::Buffer CreateBuffer ( vk::Device, BufferUsages, vk::DeviceSize size );
 	enum class MemoryTypes { hostVisible, deviceLocal };
 	vk::DeviceMemory AllocateMemory ( vk::PhysicalDevice, vk::Device, MemoryTypes, vk::DeviceSize size );
 	
-	void Upload ( vk::PhysicalDevice, vk::Device, vk::CommandPool, vk::Queue, vk::Buffer buffer, void const * data, vk::DeviceSize size );
-
 	void CreateBuffer ( 
 		vk::PhysicalDevice,
 		vk::Device,
@@ -75,4 +73,7 @@ namespace pd
 		vk::Buffer &, 
 		vk::DeviceMemory & 
 	);
+
+	vk::DescriptorPool CreateDescriptorPool ( vk::Device );
+	vk::DescriptorSet AllocateDescriptorSet ( vk::Device, vk::DescriptorPool, vk::DescriptorSetLayout );
 }

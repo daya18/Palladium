@@ -22,8 +22,8 @@ namespace pd
 	{
 		vk::ApplicationInfo appInfo { "Palladium", 1, "", 0, vk::enumerateInstanceVersion () };
 
-		std::vector <char const *> layers {	"VK_LAYER_KHRONOS_validation" };
-		
+		std::vector <char const *> layers { "VK_LAYER_KHRONOS_validation" };
+
 		auto extensions { GetWindowRequiredVulkanExtensions ( window ) };
 		extensions.push_back ( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
 
@@ -47,7 +47,7 @@ namespace pd
 	)
 	{
 		std::cout << "VULKAN ";
-		
+
 		switch ( messageSeverity )
 		{
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:		std::cout << "INFO";  break;
@@ -57,7 +57,7 @@ namespace pd
 		}
 
 		std::cout << ": " << pCallbackData->pMessage << '\n' << std::endl;
-		
+
 		return VK_FALSE;
 	}
 
@@ -91,7 +91,7 @@ namespace pd
 			{
 				if ( physicalDevice.getSurfaceSupportKHR ( queueFamilyIndex, surface ) )
 					return physicalDevice;
-					
+
 				++queueFamilyIndex;
 			}
 		}
@@ -118,7 +118,7 @@ namespace pd
 		if ( allInOneQueueFamilyIndex != -1 )
 		{
 			std::vector <float> queuePriorities { 1.0f };
-			std::vector <vk::DeviceQueueCreateInfo> queueCreateInfos { { {}, static_cast <uint32_t> ( allInOneQueueFamilyIndex ), queuePriorities } };
+			std::vector <vk::DeviceQueueCreateInfo> queueCreateInfos { { {}, static_cast < uint32_t > ( allInOneQueueFamilyIndex ), queuePriorities } };
 			std::vector < char const * > extensions { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 			vk::DeviceCreateInfo createInfo ( {}, queueCreateInfos, {}, extensions, {} );
 			device = physicalDevice.createDevice ( createInfo );
@@ -139,19 +139,22 @@ namespace pd
 		std::cerr << "Failed to create device" << std::endl;
 		throw std::runtime_error { "Failed to create device" };
 	}
-	
+
 	vk::SurfaceFormatKHR SelectSurfaceFormat ( vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface )
 	{
-		return physicalDevice.getSurfaceFormatsKHR ( surface ) [0];
+		return physicalDevice.getSurfaceFormatsKHR ( surface ) [ 0 ];
 	}
 
 	vk::SwapchainKHR CreateSwapchain (
-		vk::PhysicalDevice physicalDevice, 
-		vk::Device device, 
+		vk::PhysicalDevice physicalDevice,
+		vk::Device device,
 		vk::SurfaceKHR surface,
 		vk::SurfaceFormatKHR const & format,
-		glm::vec2 const & size )
+		glm::vec2 const & size, 
+		vk::SwapchainKHR oldSwapchain )
 	{
+		static_cast <void> ( physicalDevice.getSurfaceCapabilitiesKHR ( surface ) );
+
 		vk::SwapchainCreateInfoKHR createInfo
 		{
 			{},
@@ -159,7 +162,7 @@ namespace pd
 			3,
 			format.format,
 			format.colorSpace,
-			{ static_cast <uint32_t> ( size.x ), static_cast < uint32_t > ( size.y ) },
+			{ static_cast < uint32_t > ( size.x ), static_cast < uint32_t > ( size.y ) },
 			1,
 			vk::ImageUsageFlagBits::eColorAttachment,
 			vk::SharingMode::eExclusive,
@@ -168,7 +171,7 @@ namespace pd
 			vk::CompositeAlphaFlagBitsKHR::eOpaque,
 			vk::PresentModeKHR::eImmediate,
 			0,
-			{}
+			oldSwapchain
 		};
 
 		return device.createSwapchainKHR ( createInfo );
@@ -213,14 +216,14 @@ namespace pd
 
 		return device.createRenderPass ( createInfo );
 	}
-	
+
 	std::vector <vk::ImageView> CreateSwapchainImageViews ( vk::Device device, vk::SwapchainKHR swapchain, vk::Format format )
 	{
 		auto images { device.getSwapchainImagesKHR ( swapchain ) };
 
 		std::vector <vk::ImageView> imageViews;
 		imageViews.reserve ( images.size () );
-		
+
 		for ( auto const & image : images )
 		{
 			vk::ImageViewCreateInfo createInfo
@@ -253,8 +256,8 @@ namespace pd
 				{},
 				renderPass,
 				attachments,
-				static_cast <uint32_t> ( size.x ),
-				static_cast <uint32_t> ( size.y ),
+				static_cast < uint32_t > ( size.x ),
+				static_cast < uint32_t > ( size.y ),
 				1
 			};
 
@@ -263,19 +266,19 @@ namespace pd
 
 		return framebuffers;
 	}
-	
-	vk::PipelineLayout CreatePipelineLayout ( vk::Device device )
+
+	vk::PipelineLayout CreatePipelineLayout ( vk::Device device, std::vector <vk::DescriptorSetLayout> const & descriptorSetLayouts )
 	{
 		vk::PipelineLayoutCreateInfo createInfo
 		{
 			{},
-			{},
+			descriptorSetLayouts,
 			{}
 		};
 
 		return device.createPipelineLayout ( createInfo );
 	}
-	
+
 	vk::ShaderModule CreateShaderModuleFromFile ( vk::Device device, std::string const & filePath )
 	{
 		std::ifstream file { filePath, std::ios::ate | std::ios::binary };
@@ -286,7 +289,7 @@ namespace pd
 		std::vector <uint32_t> code ( size );
 		std::memcpy ( code.data (), data.data (), data.size () );
 
-		vk::ShaderModuleCreateInfo createInfo { {}, static_cast <size_t> ( size ), code.data () };
+		vk::ShaderModuleCreateInfo createInfo { {}, static_cast < size_t > ( size ), code.data () };
 		return device.createShaderModule ( createInfo );
 	}
 
@@ -300,7 +303,7 @@ namespace pd
 			{ {}, vk::ShaderStageFlagBits::eVertex, vertexShader, "main" },
 			{ {}, vk::ShaderStageFlagBits::eFragment, fragmentShader, "main" }
 		};
-		
+
 		std::vector <vk::VertexInputBindingDescription> vertexBindings { { 0, sizeof ( float ) * 3, vk::VertexInputRate::eVertex } };
 		std::vector <vk::VertexInputAttributeDescription> vertexAttributes { { 0, 0, vk::Format::eR32G32B32Sfloat, 0 } };
 
@@ -329,7 +332,7 @@ namespace pd
 			{},
 			1.0f
 		};
-		
+
 		vk::PipelineMultisampleStateCreateInfo multisampleState
 		{
 			{},
@@ -359,7 +362,10 @@ namespace pd
 			colorBlendAttachmentStates
 		};
 
-		vk::GraphicsPipelineCreateInfo createInfo 
+		std::vector <vk::DynamicState> dynamicStates { vk::DynamicState::eViewport, vk::DynamicState::eScissor };
+		vk::PipelineDynamicStateCreateInfo dynamicState { {}, dynamicStates };
+
+		vk::GraphicsPipelineCreateInfo createInfo
 		{
 			{},
 			shaderStages,
@@ -371,7 +377,7 @@ namespace pd
 			&multisampleState,
 			nullptr,
 			&colorBlendState,
-			{},
+			&dynamicState,
 			info.pipelineLayout,
 			info.renderPass,
 			info.subpass,
@@ -392,7 +398,7 @@ namespace pd
 		std::vector <vk::Semaphore> signalSemaphores,
 		std::vector <vk::Semaphore> const & waitSemaphores,
 		std::vector <vk::PipelineStageFlags> waitStages
-	) 
+	)
 	{
 		vk::SubmitInfo info
 		{
@@ -406,7 +412,7 @@ namespace pd
 
 	}
 
-	void Present ( vk::Queue queue, vk::SwapchainKHR swapchain, uint32_t imageIndex, vk::Semaphore waitSemaphore )
+	vk::Result Present ( vk::Queue queue, vk::SwapchainKHR swapchain, uint32_t imageIndex, vk::Semaphore waitSemaphore )
 	{
 		auto waitSemaphores = { waitSemaphore };
 		auto swapchains = { swapchain };
@@ -419,7 +425,7 @@ namespace pd
 			imageIndices
 		};
 
-		queue.presentKHR ( presentInfo );
+		return queue.presentKHR ( presentInfo );
 	}
 
 	vk::Buffer CreateBuffer ( vk::Device device, BufferUsages usage, vk::DeviceSize size )
@@ -428,12 +434,16 @@ namespace pd
 
 		switch ( usage )
 		{
-		case BufferUsages::vertexBuffer: 
-			vkUsage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst; 
+		case BufferUsages::vertexBuffer:
+			vkUsage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
 			break;
-		
+
 		case BufferUsages::indexBuffer:
 			vkUsage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+			break;
+
+		case BufferUsages::uniformBuffer:
+			vkUsage = vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst;
 			break;
 
 		case BufferUsages::stagingBuffer:
@@ -457,7 +467,9 @@ namespace pd
 			for ( auto const & type : memoryProperties.memoryTypes )
 			{
 				if ( type.propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal )
-				{ typeFound = true; break; }
+				{
+					typeFound = true; break;
+				}
 				++typeIndex;
 			}
 
@@ -468,7 +480,9 @@ namespace pd
 			for ( auto const & type : memoryProperties.memoryTypes )
 			{
 				if ( type.propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent )
-				{ typeFound = true; break;}
+				{
+					typeFound = true; break;
+				}
 				++typeIndex;
 			}
 
@@ -537,5 +551,23 @@ namespace pd
 		memory = AllocateMemory ( physicalDevice, device, MemoryTypes::deviceLocal, size );
 		device.bindBufferMemory ( buffer, memory, 0 );
 		Upload ( physicalDevice, device, commandPool, queue, buffer, data, size );
+	}
+
+	vk::DescriptorPool CreateDescriptorPool ( vk::Device device )
+	{
+		std::vector <vk::DescriptorPoolSize> poolSizes
+		{
+			{ vk::DescriptorType::eUniformBuffer, 1000 },
+			{ vk::DescriptorType::eSampledImage, 1000 }
+		};
+
+		vk::DescriptorPoolCreateInfo info { {}, 1000, poolSizes };
+		return device.createDescriptorPool ( info );
+	}
+
+	vk::DescriptorSet AllocateDescriptorSet ( vk::Device device, vk::DescriptorPool pool, vk::DescriptorSetLayout layout )
+	{
+		auto layouts = { layout };
+		return device.allocateDescriptorSets ( { pool, layouts } ) [ 0 ];
 	}
 }

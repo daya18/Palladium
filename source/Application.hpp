@@ -13,6 +13,14 @@ namespace pd
 		void Run ();
 
 	private:
+		struct MaterialUniformBlock
+		{
+			glm::vec4 color;
+		};
+
+		void Render ();
+		void UpdateSwapchain ();
+
 		SDL_Window * window;
 		vk::Instance instance;
 		vk::DebugUtilsMessengerEXT debugUtilsMessenger;
@@ -20,8 +28,9 @@ namespace pd
 		vk::PhysicalDevice physicalDevice;
 		vk::Device device;
 		DeviceQueues queues;
-		vk::Extent2D swapchainExtent;
+		vk::SurfaceFormatKHR surfaceFormat;
 		vk::SwapchainKHR swapchain;
+		vk::Extent2D swapchainExtent;
 		vk::RenderPass renderPass;
 		std::vector <vk::ImageView> swapchainImageViews;
 		std::vector <vk::Framebuffer> framebuffers;
@@ -30,14 +39,19 @@ namespace pd
 		vk::Semaphore imageAvailableSemaphore;
 		vk::Semaphore renderFinishedSemaphore;
 		vk::Fence renderFinishedFence;
+		vk::DescriptorSetLayout materialDSetLayout;
 		vk::PipelineLayout pipelineLayout;
 		vk::Pipeline graphicsPipeline;
 		vk::CommandPool transferCommandPool;
-		
+		vk::DescriptorPool descriptorPool;
+
 		vk::Buffer vertexBuffer;
 		vk::DeviceMemory vertexBufferMemory;
 		uint32_t indexCount { 0 };
 		vk::Buffer indexBuffer;
 		vk::DeviceMemory indexBufferMemory;
+		vk::Buffer materialUniformBuffer;
+		vk::DeviceMemory materialUniformBufferMemory;
+		vk::DescriptorSet materialDescriptorSet;
 	};
 }
