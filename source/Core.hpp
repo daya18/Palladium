@@ -46,5 +46,33 @@ namespace pd
 	};
 
 	vk::Pipeline CreateGraphicsPipeline ( GraphicsPipelineCreateInfo const & );
+	
+	void Submit ( 
+		vk::Queue, 
+		std::vector <vk::CommandBuffer> const & commandBuffers,
+		vk::Fence signalFence = {},
+		std::vector <vk::Semaphore> signalSemaphores = {},
+		std::vector <vk::Semaphore> const & waitSemaphores = {},
+		std::vector <vk::PipelineStageFlags> waitStages = {}
+	);
+
 	void Present ( vk::Queue, vk::SwapchainKHR, uint32_t imageIndex, vk::Semaphore waitSemaphore );
+	enum class BufferUsages { vertexBuffer, indexBuffer, stagingBuffer };
+	vk::Buffer CreateBuffer ( vk::Device, BufferUsages, vk::DeviceSize size );
+	enum class MemoryTypes { hostVisible, deviceLocal };
+	vk::DeviceMemory AllocateMemory ( vk::PhysicalDevice, vk::Device, MemoryTypes, vk::DeviceSize size );
+	
+	void Upload ( vk::PhysicalDevice, vk::Device, vk::CommandPool, vk::Queue, vk::Buffer buffer, void const * data, vk::DeviceSize size );
+
+	void CreateBuffer ( 
+		vk::PhysicalDevice,
+		vk::Device,
+		vk::CommandPool,
+		vk::Queue,
+		BufferUsages usage,
+		void const * data,
+		vk::DeviceSize size,
+		vk::Buffer &, 
+		vk::DeviceMemory & 
+	);
 }

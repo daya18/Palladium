@@ -301,8 +301,8 @@ namespace pd
 			{ {}, vk::ShaderStageFlagBits::eFragment, fragmentShader, "main" }
 		};
 		
-		std::vector <vk::VertexInputBindingDescription> vertexBindings { /*{ 0, sizeof ( float ) * 3, vk::VertexInputRate::eVertex }*/ };
-		std::vector <vk::VertexInputAttributeDescription> vertexAttributes { /*{ 0, 0, vk::Format::eR32G32B32Sfloat, 0 }*/ };
+		std::vector <vk::VertexInputBindingDescription> vertexBindings { { 0, sizeof ( float ) * 3, vk::VertexInputRate::eVertex } };
+		std::vector <vk::VertexInputAttributeDescription> vertexAttributes { { 0, 0, vk::Format::eR32G32B32Sfloat, 0 } };
 
 		vk::PipelineVertexInputStateCreateInfo vertexInputState
 		{ {}, vertexBindings, vertexAttributes };
@@ -385,6 +385,27 @@ namespace pd
 		return pipeline;
 	}
 
+	void Submit (
+		vk::Queue queue,
+		std::vector <vk::CommandBuffer> const & commandBuffers,
+		vk::Fence signalFence,
+		std::vector <vk::Semaphore> signalSemaphores,
+		std::vector <vk::Semaphore> const & waitSemaphores,
+		std::vector <vk::PipelineStageFlags> waitStages
+	) 
+	{
+		vk::SubmitInfo info
+		{
+			waitSemaphores,
+			waitStages,
+			commandBuffers,
+			signalSemaphores
+		};
+
+		queue.submit ( { info }, signalFence );
+
+	}
+
 	void Present ( vk::Queue queue, vk::SwapchainKHR swapchain, uint32_t imageIndex, vk::Semaphore waitSemaphore )
 	{
 		auto waitSemaphores = { waitSemaphore };
@@ -401,4 +422,120 @@ namespace pd
 		queue.presentKHR ( presentInfo );
 	}
 
+	vk::Buffer CreateBuffer ( vk::Device device, BufferUsages usage, vk::DeviceSize size )
+	{
+		vk::BufferUsageFlags vkUsage;
+
+		switch ( usage )
+		{
+		case BufferUsages::vertexBuffer: 
+			vkUsage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst; 
+			break;
+		
+		case BufferUsages::indexBuffer:
+			vkUsage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
+			break;
+
+		case BufferUsages::stagingBuffer:
+			vkUsage = vk::BufferUsageFlagBits::eTransferSrc;
+			break;
+		}
+
+		return device.createBuffer ( { {}, size, vkUsage } );
+	}
+
+	vk::DeviceMemory AllocateMemory ( vk::PhysicalDevice physicalDevice, vk::Device device, MemoryTypes type, vk::DeviceSize size )
+	{
+		bool typeFound { false };
+		uint32_t typeIndex { 0 };
+		auto memoryProperties { physicalDevice.getMemoryProperties () };
+
+		switch ( type )
+		{
+		case MemoryTypes::deviceLocal:
+			typeIndex = 0;
+			for ( auto const & type : memoryProperties.memoryTypes )
+			{
+				if ( type.propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal )
+				{ typeFound = true; break; }
+				++typeIndex;
+			}
+
+			break;
+
+		case MemoryTypes::hostVisible:
+			typeIndex = 0;
+			for ( auto const & type : memoryProperties.memoryTypes )
+			{
+				if ( type.propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent )
+				{ typeFound = true; break;}
+				++typeIndex;
+			}
+
+			if ( typeFound ) break;
+
+			typeIndex = 0;
+			for ( auto const & type : memoryProperties.memoryTypes )
+			{
+				if ( type.propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible )
+				{
+					typeFound = true; break;
+				}
+				++typeIndex;
+			}
+
+			break;
+		}
+
+		assert ( typeFound );
+
+		return device.allocateMemory ( { size, typeIndex } );
+	}
+
+	void Upload ( vk::PhysicalDevice physicalDevice, vk::Device device, vk::CommandPool commandPool, vk::Queue queue, vk::Buffer buffer, void const * data, vk::DeviceSize size )
+	{
+		vk::Fence uploadFinishedFence { device.createFence ( {} ) };
+
+		vk::Buffer stagingBuffer { CreateBuffer ( device, BufferUsages::stagingBuffer, size ) };
+		vk::DeviceMemory stagingBufferMemory { AllocateMemory ( physicalDevice, device, MemoryTypes::hostVisible, size ) };
+		device.bindBufferMemory ( stagingBuffer, stagingBufferMemory, 0 );
+
+		auto stagingBufferData { device.mapMemory ( stagingBufferMemory, 0, size, {} ) };
+		std::memcpy ( stagingBufferData, data, size );
+		vk::MappedMemoryRange range { stagingBufferMemory, 0, size };
+		device.flushMappedMemoryRanges ( { range } );
+
+		auto commandBuffer { device.allocateCommandBuffers ( { commandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ] };
+
+		vk::CommandBufferBeginInfo beginInfo {};
+		commandBuffer.begin ( beginInfo );
+		vk::BufferCopy copyRegion { 0, 0, size };
+		commandBuffer.copyBuffer ( stagingBuffer, buffer, { copyRegion } );
+		commandBuffer.end ();
+
+		Submit ( queue, { commandBuffer }, uploadFinishedFence );
+		device.waitForFences ( { uploadFinishedFence }, VK_FALSE, std::numeric_limits <uint64_t>::max () );
+
+		device.destroy ( stagingBuffer );
+		device.free ( stagingBufferMemory );
+		device.destroy ( uploadFinishedFence );
+	}
+
+	void CreateBuffer (
+		vk::PhysicalDevice physicalDevice,
+		vk::Device device,
+		vk::CommandPool commandPool,
+		vk::Queue queue,
+		BufferUsages usage,
+		void const * data,
+		vk::DeviceSize size,
+		vk::Buffer & buffer,
+		vk::DeviceMemory & memory
+	)
+	{
+		buffer = CreateBuffer ( device, usage, size );
+		memory = AllocateMemory ( physicalDevice, device, MemoryTypes::deviceLocal, size );
+		device.bindBufferMemory ( buffer, memory, 0 );
+		Upload ( physicalDevice, device, commandPool, queue, buffer, data, size );
+	}
 }

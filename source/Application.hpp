@@ -32,5 +32,12 @@ namespace pd
 		vk::Fence renderFinishedFence;
 		vk::PipelineLayout pipelineLayout;
 		vk::Pipeline graphicsPipeline;
+		vk::CommandPool transferCommandPool;
+		
+		vk::Buffer vertexBuffer;
+		vk::DeviceMemory vertexBufferMemory;
+		uint32_t indexCount { 0 };
+		vk::Buffer indexBuffer;
+		vk::DeviceMemory indexBufferMemory;
 	};
 }

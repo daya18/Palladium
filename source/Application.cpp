@@ -8,7 +8,7 @@ namespace pd
 	{
 		SDL_Init ( 0 );
 		window = SDL_CreateWindow ( "Palladium", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_VULKAN );
-		
+
 		VULKAN_HPP_DEFAULT_DISPATCHER.init ();
 		instance = CreateInstance ( window );
 		VULKAN_HPP_DEFAULT_DISPATCHER.init ( instance );
@@ -31,12 +31,37 @@ namespace pd
 		renderFinishedFence = device.createFence ( { vk::FenceCreateFlagBits::eSignaled } );
 		pipelineLayout = CreatePipelineLayout ( device );
 		graphicsPipeline = CreateGraphicsPipeline ( { device, renderPass, 0, pipelineLayout } );
+		transferCommandPool = device.createCommandPool ( { {}, queues.transferQueueFamilyIndex } );
+
+		std::vector <float> vertices {
+			-0.5f,  0.5f, 0.0f,
+			-0.5f, -0.5f, 0.0f,
+			 0.5f, -0.5f, 0.0f,
+			 0.5f,  0.5f, 0.0f
+		};
+
+		std::vector <uint32_t> indices {
+			0, 1, 2, 2, 3, 0
+		};
+
+		indexCount = indices.size ();
+
+		CreateBuffer ( physicalDevice, device, transferCommandPool, queues.transferQueue, 
+			BufferUsages::vertexBuffer, vertices.data (), vertices.size () * sizeof ( float ), vertexBuffer, vertexBufferMemory );
+
+		CreateBuffer ( physicalDevice, device, transferCommandPool, queues.transferQueue,
+			BufferUsages::indexBuffer, indices.data (), indices.size () * sizeof ( uint32_t ), indexBuffer, indexBufferMemory );
 	}
 
 	Application::~Application ()
 	{
 		device.waitIdle ();
-
+		
+		device.free ( indexBufferMemory );
+		device.destroy ( indexBuffer );
+		device.free ( vertexBufferMemory );
+		device.destroy ( vertexBuffer );
+		device.destroy ( transferCommandPool );
 		device.destroy ( graphicsPipeline );
 		device.destroy ( pipelineLayout );
 		device.destroy ( renderFinishedFence );
@@ -105,30 +130,18 @@ namespace pd
 			vk::RenderPassBeginInfo renderPassBeginInfo { renderPass, framebuffers [ imageIndex ], renderArea, clearValues };
 			
 			renderCommandBuffer.beginRenderPass ( renderPassBeginInfo, vk::SubpassContents::eInline );
+
 			renderCommandBuffer.bindPipeline ( vk::PipelineBindPoint::eGraphics, graphicsPipeline );
-			renderCommandBuffer.draw ( 3, 1, 0, 0 );
+			renderCommandBuffer.bindVertexBuffers ( 0, { vertexBuffer }, { 0 } );
+			renderCommandBuffer.bindIndexBuffer ( indexBuffer, 0, vk::IndexType::eUint32 );
+			renderCommandBuffer.drawIndexed ( indexCount, 1, 0, 0, 0 );
+			
 			renderCommandBuffer.endRenderPass ();
 
 			renderCommandBuffer.end ();
 
-				// Submit
-			
-			{
-				auto waitSemaphores = { imageAvailableSemaphore };
-				std::vector <vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eTopOfPipe };
-				auto commandBuffers = { renderCommandBuffer };
-				auto signalSemaphores = { renderFinishedSemaphore };
-
-				vk::SubmitInfo info
-				{
-					waitSemaphores,
-					waitStages,
-					renderCommandBuffer,
-					signalSemaphores
-				};
-
-				queues.graphicsQueue.submit ( { info }, renderFinishedFence );
-			}
+			Submit ( queues.graphicsQueue, { renderCommandBuffer }, renderFinishedFence, { renderFinishedSemaphore },
+				{ imageAvailableSemaphore }, { vk::PipelineStageFlagBits::eTopOfPipe } );
 
 			Present ( queues.presentationQueue, swapchain, imageIndex, renderFinishedSemaphore );
 		}
