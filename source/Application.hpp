@@ -33,6 +33,9 @@ namespace pd
 		vk::Extent2D swapchainExtent;
 		vk::RenderPass renderPass;
 		std::vector <vk::ImageView> swapchainImageViews;
+		vk::Image depthBuffer;
+		vk::DeviceMemory depthBufferMemory;
+		vk::ImageView depthBufferView;
 		std::vector <vk::Framebuffer> framebuffers;
 		vk::CommandPool graphicsCommandPool;
 		vk::CommandBuffer renderCommandBuffer;

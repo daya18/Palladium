@@ -23,7 +23,8 @@ namespace pd
 		swapchainExtent = vk::Extent2D { static_cast < uint32_t > ( windowSize.x ), static_cast < uint32_t > ( windowSize.y ) };
 		renderPass = CreateRenderPass ( device, surfaceFormat.format );
 		swapchainImageViews = CreateSwapchainImageViews ( device, swapchain, surfaceFormat.format );
-		framebuffers = CreateFramebuffers ( device, renderPass, swapchainImageViews, windowSize );
+		CreateDepthBuffer ( physicalDevice, device, swapchainExtent, depthBuffer, depthBufferMemory, depthBufferView );
+		framebuffers = CreateFramebuffers ( device, renderPass, swapchainImageViews, depthBufferView, windowSize );
 		graphicsCommandPool = device.createCommandPool ( { { vk::CommandPoolCreateFlagBits::eResetCommandBuffer }, queues.graphicsQueueFamilyIndex } );
 		renderCommandBuffer = device.allocateCommandBuffers ( { graphicsCommandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ];
 		imageAvailableSemaphore = device.createSemaphore ( {} );
@@ -92,6 +93,10 @@ namespace pd
 		for ( auto const & framebuffer : framebuffers )
 			device.destroy ( framebuffer );
 
+		device.destroy ( depthBufferView );
+		device.destroy ( depthBuffer );
+		device.free ( depthBufferMemory );
+
 		for ( auto const & imageView : swapchainImageViews )
 			device.destroy ( imageView );
 
@@ -158,7 +163,7 @@ namespace pd
 		renderCommandBuffer.begin ( beginInfo );
 
 		vk::Rect2D renderArea { { 0, 0 }, swapchainExtent };
-		std::vector <vk::ClearValue> clearValues { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
+		std::vector <vk::ClearValue> clearValues { { { 0.0f, 0.0f, 0.0f, 1.0f } }, { { 1.0f } } };
 		vk::RenderPassBeginInfo renderPassBeginInfo { renderPass, framebuffers [ imageIndex ], renderArea, clearValues };
 
 		renderCommandBuffer.beginRenderPass ( renderPassBeginInfo, vk::SubpassContents::eInline );
@@ -212,7 +217,7 @@ namespace pd
 
 		for ( auto const & framebuffer : framebuffers )
 			device.destroy ( framebuffer );
-		framebuffers = CreateFramebuffers ( device, renderPass, swapchainImageViews, windowSize );
+		framebuffers = CreateFramebuffers ( device, renderPass, swapchainImageViews, depthBufferView, windowSize );
 		
 		device.free ( graphicsCommandPool, renderCommandBuffer );
 		renderCommandBuffer = device.allocateCommandBuffers ( { graphicsCommandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ];

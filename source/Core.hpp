@@ -33,7 +33,7 @@ namespace pd
 	vk::SwapchainKHR CreateSwapchain ( vk::PhysicalDevice, vk::Device, vk::SurfaceKHR, vk::SurfaceFormatKHR const &, glm::vec2 const & size, vk::SwapchainKHR oldSwapchain = {} );
 	vk::RenderPass CreateRenderPass ( vk::Device, vk::Format outputFormat );
 	std::vector <vk::ImageView> CreateSwapchainImageViews ( vk::Device, vk::SwapchainKHR, vk::Format format );
-	std::vector <vk::Framebuffer> CreateFramebuffers ( vk::Device, vk::RenderPass, std::vector <vk::ImageView> attachments, glm::vec2 const & size );
+	std::vector <vk::Framebuffer> CreateFramebuffers ( vk::Device, vk::RenderPass, std::vector <vk::ImageView> attachments, vk::ImageView depthAttachment, glm::vec2 const & size );
 	vk::PipelineLayout CreatePipelineLayout ( vk::Device, std::vector <vk::DescriptorSetLayout> const & = {} );
 	vk::ShaderModule CreateShaderModuleFromFile ( vk::Device, std::string const & filePath );
 
@@ -76,4 +76,5 @@ namespace pd
 
 	vk::DescriptorPool CreateDescriptorPool ( vk::Device );
 	vk::DescriptorSet AllocateDescriptorSet ( vk::Device, vk::DescriptorPool, vk::DescriptorSetLayout );
+	void CreateDepthBuffer ( vk::PhysicalDevice, vk::Device, vk::Extent2D, vk::Image &, vk::DeviceMemory &, vk::ImageView & );
 }

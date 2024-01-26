@@ -190,8 +190,21 @@ namespace pd
 			vk::ImageLayout::eUndefined,
 			vk::ImageLayout::ePresentSrcKHR
 		};
+		
+		vk::AttachmentDescription depthAttachment {
+			{},
+			vk::Format::eD32Sfloat,
+			vk::SampleCountFlagBits::e1,
+			vk::AttachmentLoadOp::eClear,
+			vk::AttachmentStoreOp::eDontCare,
+			vk::AttachmentLoadOp::eDontCare,
+			vk::AttachmentStoreOp::eDontCare,
+			vk::ImageLayout::eUndefined,
+			vk::ImageLayout::eDepthStencilAttachmentOptimal
+		};
 
 		vk::AttachmentReference outputAttachmentReference { 0, vk::ImageLayout::eColorAttachmentOptimal };
+		vk::AttachmentReference depthAttachmentReference { 1, vk::ImageLayout::eDepthStencilAttachmentOptimal };
 
 		auto subpassColorAttachments = { outputAttachmentReference };
 
@@ -200,10 +213,12 @@ namespace pd
 			{},
 			vk::PipelineBindPoint::eGraphics,
 			{}, // Input attachments
-			subpassColorAttachments
+			subpassColorAttachments,
+			{},
+			&depthAttachmentReference
 		};
 
-		auto attachments = { outputAttachment };
+		auto attachments = { outputAttachment, depthAttachment };
 		auto subpasses = { subpass };
 
 		vk::RenderPassCreateInfo createInfo
@@ -242,14 +257,16 @@ namespace pd
 		return imageViews;
 	}
 
-	std::vector <vk::Framebuffer> CreateFramebuffers ( vk::Device device, vk::RenderPass renderPass, std::vector <vk::ImageView> attachments, glm::vec2 const & size )
+	std::vector <vk::Framebuffer> CreateFramebuffers ( 
+		vk::Device device, vk::RenderPass renderPass, 
+		std::vector <vk::ImageView> attachments, vk::ImageView depthAttachment, glm::vec2 const & size )
 	{
 		std::vector <vk::Framebuffer> framebuffers;
 		framebuffers.reserve ( attachments.size () );
 
 		for ( auto const & attachment : attachments )
 		{
-			auto attachments = { attachment };
+			auto attachments = { attachment, depthAttachment };
 
 			vk::FramebufferCreateInfo createInfo
 			{
@@ -365,6 +382,16 @@ namespace pd
 		std::vector <vk::DynamicState> dynamicStates { vk::DynamicState::eViewport, vk::DynamicState::eScissor };
 		vk::PipelineDynamicStateCreateInfo dynamicState { {}, dynamicStates };
 
+		vk::PipelineDepthStencilStateCreateInfo depthStencilState
+		{
+			{},
+			VK_TRUE,
+			VK_TRUE,
+			vk::CompareOp::eLess,
+			VK_FALSE,
+			VK_FALSE
+		};
+
 		vk::GraphicsPipelineCreateInfo createInfo
 		{
 			{},
@@ -375,7 +402,7 @@ namespace pd
 			&viewportState,
 			&rasterizationState,
 			&multisampleState,
-			nullptr,
+			&depthStencilState,
 			&colorBlendState,
 			&dynamicState,
 			info.pipelineLayout,
@@ -569,5 +596,43 @@ namespace pd
 	{
 		auto layouts = { layout };
 		return device.allocateDescriptorSets ( { pool, layouts } ) [ 0 ];
+	}
+	
+	void CreateDepthBuffer ( vk::PhysicalDevice physicalDevice, vk::Device device, 
+		vk::Extent2D extent, vk::Image & image, vk::DeviceMemory & memory, vk::ImageView & imageView )
+	{
+		vk::ImageCreateInfo imageCreateInfo
+		{
+			{},
+			vk::ImageType::e2D,
+			vk::Format::eD32Sfloat,
+			{ extent.width, extent.height, 1 },
+			1,
+			1,
+			vk::SampleCountFlagBits::e1,
+			vk::ImageTiling::eOptimal,
+			vk::ImageUsageFlagBits::eDepthStencilAttachment,
+			vk::SharingMode::eExclusive,
+			{},
+			vk::ImageLayout::eUndefined
+		};
+
+		image = device.createImage ( imageCreateInfo );
+		
+		auto requirements { device.getImageMemoryRequirements ( image ) };
+		memory = AllocateMemory ( physicalDevice, device, MemoryTypes::deviceLocal, requirements.size );
+		device.bindImageMemory ( image, memory, 0 );
+
+		vk::ImageViewCreateInfo imageViewCreateInfo
+		{
+			{},
+			image,
+			vk::ImageViewType::e2D,
+			vk::Format::eD32Sfloat,
+			{ vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity,vk::ComponentSwizzle::eIdentity,vk::ComponentSwizzle::eIdentity },
+			{ vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1  }
+		};
+
+		imageView = device.createImageView ( imageViewCreateInfo );
 	}
 }
