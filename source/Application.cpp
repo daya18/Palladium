@@ -217,6 +217,13 @@ namespace pd
 
 		for ( auto const & framebuffer : framebuffers )
 			device.destroy ( framebuffer );
+		
+		device.destroy ( depthBufferView );
+		device.destroy ( depthBuffer );
+		device.free ( depthBufferMemory );
+		
+		CreateDepthBuffer ( physicalDevice, device, swapchainExtent, depthBuffer, depthBufferMemory, depthBufferView );
+		
 		framebuffers = CreateFramebuffers ( device, renderPass, swapchainImageViews, depthBufferView, windowSize );
 		
 		device.free ( graphicsCommandPool, renderCommandBuffer );
