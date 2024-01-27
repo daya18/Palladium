@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core.hpp"
+#include "Axel.hpp"
+#include "Camera.hpp"
 
 namespace pd
 {
@@ -13,11 +15,6 @@ namespace pd
 		void Run ();
 
 	private:
-		struct MaterialUniformBlock
-		{
-			glm::vec4 color;
-		};
-
 		void Render ();
 		void UpdateSwapchain ();
 
@@ -42,19 +39,8 @@ namespace pd
 		vk::Semaphore imageAvailableSemaphore;
 		vk::Semaphore renderFinishedSemaphore;
 		vk::Fence renderFinishedFence;
-		vk::DescriptorSetLayout materialDSetLayout;
-		vk::PipelineLayout pipelineLayout;
-		vk::Pipeline graphicsPipeline;
-		vk::CommandPool transferCommandPool;
-		vk::DescriptorPool descriptorPool;
 
-		vk::Buffer vertexBuffer;
-		vk::DeviceMemory vertexBufferMemory;
-		uint32_t indexCount { 0 };
-		vk::Buffer indexBuffer;
-		vk::DeviceMemory indexBufferMemory;
-		vk::Buffer materialUniformBuffer;
-		vk::DeviceMemory materialUniformBufferMemory;
-		vk::DescriptorSet materialDescriptorSet;
+		Axel axel;
+		Camera camera;
 	};
 }

@@ -30,58 +30,20 @@ namespace pd
 		imageAvailableSemaphore = device.createSemaphore ( {} );
 		renderFinishedSemaphore = device.createSemaphore ( {} );
 		renderFinishedFence = device.createFence ( { vk::FenceCreateFlagBits::eSignaled } );
-		std::vector <vk::DescriptorSetLayoutBinding> bindings { { 0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment } };
-		materialDSetLayout = device.createDescriptorSetLayout ( { {}, bindings } );
-		pipelineLayout = CreatePipelineLayout ( device, { materialDSetLayout } );
-		graphicsPipeline = CreateGraphicsPipeline ( { device, renderPass, 0, pipelineLayout } );
-		transferCommandPool = device.createCommandPool ( { {}, queues.transferQueueFamilyIndex } );
-		descriptorPool = CreateDescriptorPool ( device );
 
-		std::vector <float> vertices {
-			-0.5f,  0.5f, 0.0f,
-			-0.5f, -0.5f, 0.0f,
-			 0.5f, -0.5f, 0.0f,
-			 0.5f,  0.5f, 0.0f
-		};
+		camera.SetViewportSize ( windowSize );
 
-		std::vector <uint32_t> indices {
-			0, 1, 2, 2, 3, 0
-		};
-
-		indexCount = indices.size ();
-
-		MaterialUniformBlock materialData { { 0.0f, 1.0f, 0.0f, 1.0f } };
-		
-		CreateBuffer ( physicalDevice, device, transferCommandPool, queues.transferQueue, 
-			BufferUsages::vertexBuffer, vertices.data (), vertices.size () * sizeof ( float ), vertexBuffer, vertexBufferMemory );
-
-		CreateBuffer ( physicalDevice, device, transferCommandPool, queues.transferQueue,
-			BufferUsages::indexBuffer, indices.data (), indices.size () * sizeof ( uint32_t ), indexBuffer, indexBufferMemory );
-		
-		CreateBuffer ( physicalDevice, device, transferCommandPool, queues.transferQueue,
-			BufferUsages::uniformBuffer, &materialData, sizeof ( MaterialUniformBlock ), materialUniformBuffer, materialUniformBufferMemory );
-
-		materialDescriptorSet = AllocateDescriptorSet ( device, descriptorPool, materialDSetLayout );
-
-		vk::DescriptorBufferInfo bufferInfo { materialUniformBuffer, 0, sizeof ( MaterialUniformBlock ) };
-		vk::WriteDescriptorSet write { materialDescriptorSet, 0, 0, 1, vk::DescriptorType::eUniformBuffer, {}, &bufferInfo };
-		device.updateDescriptorSets ( { write }, {} );
+		axel.Initialize ( { physicalDevice, device, &queues, renderPass } );
+		axel.LoadScene ( "scene/CubeTest.obj" );
+		axel.SetCamera ( camera );
 	}
 
 	Application::~Application ()
 	{
 		device.waitIdle ();
-		device.destroy ( materialUniformBuffer );
-		device.free ( materialUniformBufferMemory );
-		device.free ( indexBufferMemory );
-		device.destroy ( indexBuffer );
-		device.free ( vertexBufferMemory );
-		device.destroy ( vertexBuffer );
-		device.destroy ( descriptorPool );
-		device.destroy ( transferCommandPool );
-		device.destroy ( graphicsPipeline );
-		device.destroy ( pipelineLayout );
-		device.destroy ( materialDSetLayout );
+
+		axel.Shutdown ();
+
 		device.destroy ( renderFinishedFence );
 		device.destroy ( renderFinishedSemaphore );
 		device.destroy ( imageAvailableSemaphore );
@@ -114,6 +76,7 @@ namespace pd
 	void Application::Run ()
 	{
 		bool quit { false };
+		bool render { true };
 
 		while ( ! quit )
 		{
@@ -130,12 +93,28 @@ namespace pd
 					case SDL_WINDOWEVENT_CLOSE:
 						quit = true;
 						break;
+
+					case SDL_WINDOWEVENT_RESIZED:
+					case SDL_WINDOWEVENT_SIZE_CHANGED:
+						auto windowSize { GetWindowSize ( window ) };
+						camera.SetViewportSize ( windowSize );
+						axel.SetCamera ( camera );
+						break;
+
+					case SDL_WINDOWEVENT_MINIMIZED:
+						render = false;
+						break;
+
+					case SDL_WINDOWEVENT_RESTORED:
+						render = true;
+						break;
 					}
 					break;
 				}
 			}
 
-			Render ();
+			if ( render )
+				Render ();
 			
 		}
 	}
@@ -167,21 +146,8 @@ namespace pd
 		vk::RenderPassBeginInfo renderPassBeginInfo { renderPass, framebuffers [ imageIndex ], renderArea, clearValues };
 
 		renderCommandBuffer.beginRenderPass ( renderPassBeginInfo, vk::SubpassContents::eInline );
-
-		renderCommandBuffer.bindPipeline ( vk::PipelineBindPoint::eGraphics, graphicsPipeline );
-
-		std::vector <vk::Viewport> viewports { { 0, 0, static_cast < float > ( swapchainExtent.width ),
-			static_cast < float > ( swapchainExtent.height ), 0.0f, 1.0f } };
-
-		std::vector <vk::Rect2D> scissors { { { 0, 0 }, swapchainExtent } };
-
-		renderCommandBuffer.setViewport ( 0, viewports );
-		renderCommandBuffer.setScissor ( 0, scissors );
-
-		renderCommandBuffer.bindDescriptorSets ( vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, { materialDescriptorSet }, {} );
-		renderCommandBuffer.bindVertexBuffers ( 0, { vertexBuffer }, { 0 } );
-		renderCommandBuffer.bindIndexBuffer ( indexBuffer, 0, vk::IndexType::eUint32 );
-		renderCommandBuffer.drawIndexed ( indexCount, 1, 0, 0, 0 );
+		
+		axel.RecordRender ( renderCommandBuffer, swapchainExtent );
 
 		renderCommandBuffer.endRenderPass ();
 
@@ -202,6 +168,11 @@ namespace pd
 
 	void Application::UpdateSwapchain ()
 	{
+		int windowWidth, windowHeight;
+		SDL_Vulkan_GetDrawableSize ( window, &windowWidth, &windowHeight );
+		std::cout << windowHeight << std::endl;
+
+		// minimize/maximize detection
 		auto windowSize { GetWindowSize ( window ) };
 		auto oldSwapchain { swapchain };
 		swapchain = CreateSwapchain ( physicalDevice, device, surface, surfaceFormat, windowSize, oldSwapchain );

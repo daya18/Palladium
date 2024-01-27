@@ -533,7 +533,8 @@ namespace pd
 		return device.allocateMemory ( { size, typeIndex } );
 	}
 
-	void Upload ( vk::PhysicalDevice physicalDevice, vk::Device device, vk::CommandPool commandPool, vk::Queue queue, vk::Buffer buffer, void const * data, vk::DeviceSize size )
+	void UpdateBuffer ( vk::PhysicalDevice physicalDevice, vk::Device device, vk::CommandPool commandPool, 
+		vk::Queue queue, vk::Buffer buffer, void const * data, vk::DeviceSize size )
 	{
 		vk::Fence uploadFinishedFence { device.createFence ( {} ) };
 
@@ -577,7 +578,7 @@ namespace pd
 		buffer = CreateBuffer ( device, usage, size );
 		memory = AllocateMemory ( physicalDevice, device, MemoryTypes::deviceLocal, size );
 		device.bindBufferMemory ( buffer, memory, 0 );
-		Upload ( physicalDevice, device, commandPool, queue, buffer, data, size );
+		UpdateBuffer ( physicalDevice, device, commandPool, queue, buffer, data, size );
 	}
 
 	vk::DescriptorPool CreateDescriptorPool ( vk::Device device )
@@ -634,5 +635,13 @@ namespace pd
 		};
 
 		imageView = device.createImageView ( imageViewCreateInfo );
+	}
+
+	vk::DescriptorSetLayout CreateDescriptorSetLayout ( 
+		vk::Device device, 
+		vk::DescriptorSetLayoutCreateFlags flags, 
+		std::vector <vk::DescriptorSetLayoutBinding> const & bindings )
+	{
+		return device.createDescriptorSetLayout ( { {}, bindings } );
 	}
 }

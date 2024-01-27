@@ -62,6 +62,9 @@ namespace pd
 	enum class MemoryTypes { hostVisible, deviceLocal };
 	vk::DeviceMemory AllocateMemory ( vk::PhysicalDevice, vk::Device, MemoryTypes, vk::DeviceSize size );
 	
+	void UpdateBuffer ( vk::PhysicalDevice physicalDevice, vk::Device device, vk::CommandPool commandPool,
+		vk::Queue queue, vk::Buffer buffer, void const * data, vk::DeviceSize size );
+
 	void CreateBuffer ( 
 		vk::PhysicalDevice,
 		vk::Device,
@@ -77,4 +80,5 @@ namespace pd
 	vk::DescriptorPool CreateDescriptorPool ( vk::Device );
 	vk::DescriptorSet AllocateDescriptorSet ( vk::Device, vk::DescriptorPool, vk::DescriptorSetLayout );
 	void CreateDepthBuffer ( vk::PhysicalDevice, vk::Device, vk::Extent2D, vk::Image &, vk::DeviceMemory &, vk::ImageView & );
+	vk::DescriptorSetLayout CreateDescriptorSetLayout ( vk::Device, vk::DescriptorSetLayoutCreateFlags, std::vector <vk::DescriptorSetLayoutBinding> const & );
 }
