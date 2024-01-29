@@ -16,13 +16,13 @@ namespace pd
 		transferCommandPool = deps.device.createCommandPool ( { {}, deps.queues->transferQueueFamilyIndex } );
 		descriptorPool = CreateDescriptorPool ( deps.device );
 
-		glm::vec2 halfSize { 100, 100 };
+		glm::vec2 halfSize { 0.5, 0.5 };
 
 		std::vector <float> vertices {
-			-halfSize.x,  halfSize.y, -500.0f,
-			-halfSize.x, -halfSize.y, -500.0f,
-			 halfSize.x, -halfSize.y, -500.0f,
-			 halfSize.x,  halfSize.y, -500.0f
+			-halfSize.x,  halfSize.y, 0.0f,
+			-halfSize.x, -halfSize.y, 0.0f,
+			 halfSize.x, -halfSize.y, 0.0f,
+			 halfSize.x,  halfSize.y, 0.0f
 		};
 
 		std::vector <uint32_t> indices {

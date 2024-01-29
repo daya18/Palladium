@@ -18,6 +18,13 @@ namespace pd
 		return size;
 	}
 
+	glm::vec2 GetMousePosition ()
+	{
+		int x, y;
+		SDL_GetMouseState ( &x, &y );
+		return { x, y };
+	}
+
 	vk::Instance CreateInstance ( SDL_Window * window )
 	{
 		vk::ApplicationInfo appInfo { "Palladium", 1, "", 0, vk::enumerateInstanceVersion () };

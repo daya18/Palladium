@@ -48,8 +48,8 @@ namespace pd
 		vk::CommandPool transferCommandPool;
 		vk::DescriptorPool descriptorPool;
 
-		vk::Buffer vertexBuffer;
-		vk::DeviceMemory vertexBufferMemory;
+		vk::Buffer vertexBuffer {};
+		vk::DeviceMemory vertexBufferMemory {};
 
 		uint32_t indexCount { 0 };
 		vk::Buffer indexBuffer;

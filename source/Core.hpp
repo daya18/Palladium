@@ -4,6 +4,8 @@ namespace pd
 {
 	std::vector < char const * > GetWindowRequiredVulkanExtensions ( SDL_Window * window );
 	glm::vec2 GetWindowSize ( SDL_Window * window );
+	glm::vec2 GetMousePosition ();
+
 	vk::Instance CreateInstance ( SDL_Window * window );
 	vk::SurfaceKHR CreateWindowSurface ( vk::Instance, SDL_Window * window );
 

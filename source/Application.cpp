@@ -32,6 +32,7 @@ namespace pd
 		renderFinishedFence = device.createFence ( { vk::FenceCreateFlagBits::eSignaled } );
 
 		camera.SetViewportSize ( windowSize );
+		camera.SetPosition ( { 0.0f, 0.0f, 1.0f } );
 
 		axel.Initialize ( { physicalDevice, device, &queues, renderPass } );
 		axel.LoadScene ( "scene/CubeTest.obj" );
@@ -75,50 +76,120 @@ namespace pd
 
 	void Application::Run ()
 	{
-		bool quit { false };
-		bool render { true };
-
 		while ( ! quit )
 		{
-			// Process events
-			SDL_Event event;
-			
-			while ( SDL_PollEvent ( &event ) )
-			{
-				switch ( event.type )
-				{
-				case SDL_WINDOWEVENT:
-					switch ( event.window.event )
-					{
-					case SDL_WINDOWEVENT_CLOSE:
-						quit = true;
-						break;
+			HandleEvents ();
 
-					case SDL_WINDOWEVENT_RESIZED:
-					case SDL_WINDOWEVENT_SIZE_CHANGED:
-						auto windowSize { GetWindowSize ( window ) };
-						camera.SetViewportSize ( windowSize );
-						axel.SetCamera ( camera );
-						break;
-
-					case SDL_WINDOWEVENT_MINIMIZED:
-						render = false;
-						break;
-
-					case SDL_WINDOWEVENT_RESTORED:
-						render = true;
-						break;
-					}
-					break;
-				}
-			}
+			Update ();
 
 			if ( render )
 				Render ();
-			
+
 		}
 	}
-	
+
+	void Application::HandleEvents ()
+	{
+		// Process events
+		SDL_Event event;
+
+		while ( SDL_PollEvent ( &event ) )
+		{
+			switch ( event.type )
+			{
+			case SDL_WINDOWEVENT:
+				switch ( event.window.event )
+				{
+				case SDL_WINDOWEVENT_CLOSE:
+					quit = true;
+					break;
+
+				case SDL_WINDOWEVENT_RESIZED:
+				case SDL_WINDOWEVENT_SIZE_CHANGED:
+					auto windowSize { GetWindowSize ( window ) };
+					camera.SetViewportSize ( windowSize );
+					axel.SetCamera ( camera );
+					break;
+
+				case SDL_WINDOWEVENT_MINIMIZED:
+					render = false;
+					break;
+
+				case SDL_WINDOWEVENT_RESTORED:
+					render = true;
+					break;
+				}
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:
+				lastMousePosition = GetMousePosition ();
+				dragging = true;
+				break;
+
+			case SDL_MOUSEBUTTONUP:
+				dragging = false;
+				break;
+
+			case SDL_KEYDOWN:
+				if ( ! event.key.repeat )
+				{
+					switch ( event.key.keysym.scancode )
+					{
+					case SDL_SCANCODE_A: cameraMoveDirection.x += -1.0f; break;
+					case SDL_SCANCODE_D: cameraMoveDirection.x += 1.0f; break;
+					case SDL_SCANCODE_W: cameraMoveDirection.z += 1.0f; break;
+					case SDL_SCANCODE_S: cameraMoveDirection.z += -1.0f; break;
+					case SDL_SCANCODE_SPACE: cameraMoveDirection.y += 1.0f; break;
+					case SDL_SCANCODE_LSHIFT: cameraMoveDirection.y += -1.0f; break;
+					}
+					break;
+				}
+
+			case SDL_KEYUP:
+				if ( ! event.key.repeat )
+				{
+					switch ( event.key.keysym.scancode )
+					{
+					case SDL_SCANCODE_A: cameraMoveDirection.x += 1.0f; break;
+					case SDL_SCANCODE_D: cameraMoveDirection.x += -1.0f; break;
+					case SDL_SCANCODE_W: cameraMoveDirection.z += -1.0f; break;
+					case SDL_SCANCODE_S: cameraMoveDirection.z += 1.0f; break;
+					case SDL_SCANCODE_SPACE: cameraMoveDirection.y += -1.0f; break;
+					case SDL_SCANCODE_LSHIFT: cameraMoveDirection.y += 1.0f; break;
+					}
+					break;
+				}
+				
+				//case SDL_EventType::SDL_MOUSEMOTION:
+				//	int x, y;
+				//	SDL_GetMouseState ( &x, &y );
+				//	std::cout << x << ' ' << y << std::endl;
+				//	break;
+			}
+		}
+	}
+
+	void Application::Update ()
+	{
+		camera.Move ( cameraMoveDirection * cameraMoveSensitivity );
+
+		if ( dragging )
+		{
+			auto currentMousePosition { GetMousePosition () };
+			auto mouseDelta { currentMousePosition - lastMousePosition };
+			lastMousePosition = currentMousePosition;
+			
+			auto cameraTurnDelta { mouseDelta };
+			cameraTurnDelta.y = -cameraTurnDelta.y;
+			//cameraTurnDelta = -cameraTurnDelta;
+			cameraTurnDelta *= cameraTurnSensitivity;
+
+			camera.PitchYaw ( cameraTurnDelta.y, cameraTurnDelta.x );
+		}
+
+		axel.SetCamera ( camera );
+	}
+
 	void Application::Render ()
 	{
 		device.waitForFences ( { renderFinishedFence }, VK_FALSE, std::numeric_limits <uint64_t>::max () );

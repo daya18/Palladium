@@ -15,8 +15,13 @@ namespace pd
 		void Run ();
 
 	private:
+		void HandleEvents ();
+		void Update ();
 		void Render ();
 		void UpdateSwapchain ();
+		
+		bool quit { false };
+		bool render { true };
 
 		SDL_Window * window;
 		vk::Instance instance;
@@ -41,6 +46,12 @@ namespace pd
 		vk::Fence renderFinishedFence;
 
 		Axel axel;
+
+		float cameraMoveSensitivity { 0.01f };
+		float cameraTurnSensitivity { 0.2f };
+		bool dragging { false };
+		glm::vec2 lastMousePosition {};
+		glm::vec3 cameraMoveDirection {};
 		Camera camera;
 	};
 }
