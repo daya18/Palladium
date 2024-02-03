@@ -35,7 +35,7 @@ namespace pd
 		camera.SetPosition ( { 0.0f, 0.0f, 1.0f } );
 
 		axel.Initialize ( { physicalDevice, device, &queues, renderPass } );
-		axel.LoadScene ( "scene/CubeTest.obj" );
+		axel.LoadScene ( "scene/TestScene.obj" );
 		axel.SetCamera ( camera );
 	}
 
@@ -180,8 +180,6 @@ namespace pd
 			lastMousePosition = currentMousePosition;
 			
 			auto cameraTurnDelta { mouseDelta };
-			cameraTurnDelta.y = -cameraTurnDelta.y;
-			//cameraTurnDelta = -cameraTurnDelta;
 			cameraTurnDelta *= cameraTurnSensitivity;
 
 			camera.PitchYaw ( cameraTurnDelta.y, cameraTurnDelta.x );

@@ -35,6 +35,7 @@ target_link_libraries ( Palladium PRIVATE Vulkan::Vulkan )
 
 target_include_directories ( Palladium PRIVATE 
 	"external/OBJ-Loader/Source"
+	external
 )
 
 target_sources ( Palladium PRIVATE 

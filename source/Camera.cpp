@@ -18,7 +18,7 @@ namespace pd
 		glm::vec3 newPosition { position };
 
 		newPosition += glm::cross ( forward, glm::vec3 { 0.0f, 1.0f, 0.0f } ) * delta.x;
-		newPosition += glm::cross ( forward, glm::vec3 { 1.0f, 0.0f, 0.0f } ) * delta.y;
+		newPosition += glm::cross ( forward, -glm::cross ( forward, glm::vec3 { 0.0f, 1.0f, 0.0f } ) ) * delta.y;
 		newPosition += forward * delta.z;
 
 		SetPosition ( newPosition );

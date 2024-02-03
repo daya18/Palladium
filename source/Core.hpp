@@ -83,4 +83,16 @@ namespace pd
 	vk::DescriptorSet AllocateDescriptorSet ( vk::Device, vk::DescriptorPool, vk::DescriptorSetLayout );
 	void CreateDepthBuffer ( vk::PhysicalDevice, vk::Device, vk::Extent2D, vk::Image &, vk::DeviceMemory &, vk::ImageView & );
 	vk::DescriptorSetLayout CreateDescriptorSetLayout ( vk::Device, vk::DescriptorSetLayoutCreateFlags, std::vector <vk::DescriptorSetLayoutBinding> const & );
+	
+	void CreateTexture ( 
+		vk::PhysicalDevice,
+		vk::Device,
+		vk::CommandPool,
+		vk::Queue,
+		uint32_t queueFamilyIndex,
+		std::string const & filePath,
+		vk::Image &,
+		vk::ImageView &,
+		vk::DeviceMemory &
+	);
 }

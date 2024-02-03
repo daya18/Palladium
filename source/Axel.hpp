@@ -21,7 +21,7 @@ namespace pd
 
 		void LoadScene ( std::string const & filePath );
 		void UnloadScene ();
-		
+
 		void SetCamera ( Camera const & );
 
 		void RecordRender ( vk::CommandBuffer, vk::Extent2D const & viewportExtent );
@@ -37,9 +37,16 @@ namespace pd
 		{
 			glm::vec4 color;
 		};
-		
+
+		struct ObjectInfo
+		{
+			int indexOffset;
+			int indexCount;
+		};
+
 		Dependencies deps;
 
+		vk::Sampler sampler;
 		vk::DescriptorSetLayout materialDSetLayout;
 		vk::DescriptorSetLayout cameraDSetLayout;
 
@@ -52,9 +59,12 @@ namespace pd
 		vk::DeviceMemory vertexBufferMemory {};
 
 		uint32_t indexCount { 0 };
-		vk::Buffer indexBuffer;
-		vk::DeviceMemory indexBufferMemory;
+		vk::Buffer indexBuffer {};
+		vk::DeviceMemory indexBufferMemory {};
 		
+		vk::Image texImage;
+		vk::DeviceMemory texMemory;
+		vk::ImageView texImageView;
 		vk::Buffer materialUniformBuffer;
 		vk::DeviceMemory materialUniformBufferMemory;
 		vk::DescriptorSet materialDescriptorSet;
@@ -62,5 +72,9 @@ namespace pd
 		vk::Buffer cameraUniformBuffer;
 		vk::DeviceMemory cameraUniformBufferMemory;
 		vk::DescriptorSet cameraDescriptorSet;
+
+		bool sceneLoaded { false };
+
+		std::vector <ObjectInfo> objectInfos;
 	};
 }

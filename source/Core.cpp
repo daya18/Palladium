@@ -1,5 +1,8 @@
 #include "Core.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 namespace pd
 {
 	std::vector < char const * > GetWindowRequiredVulkanExtensions ( SDL_Window * window )
@@ -328,8 +331,11 @@ namespace pd
 			{ {}, vk::ShaderStageFlagBits::eFragment, fragmentShader, "main" }
 		};
 
-		std::vector <vk::VertexInputBindingDescription> vertexBindings { { 0, sizeof ( float ) * 3, vk::VertexInputRate::eVertex } };
-		std::vector <vk::VertexInputAttributeDescription> vertexAttributes { { 0, 0, vk::Format::eR32G32B32Sfloat, 0 } };
+		std::vector <vk::VertexInputBindingDescription> vertexBindings { { 0, sizeof ( float ) * ( 3 + 2 ), vk::VertexInputRate::eVertex } };
+		
+		std::vector <vk::VertexInputAttributeDescription> vertexAttributes { 
+			{ 0, 0, vk::Format::eR32G32B32Sfloat, 0 }, 
+			{ 1, 0, vk::Format::eR32G32Sfloat, sizeof ( float ) * 3 } };
 
 		vk::PipelineVertexInputStateCreateInfo vertexInputState
 		{ {}, vertexBindings, vertexAttributes };
@@ -650,5 +656,126 @@ namespace pd
 		std::vector <vk::DescriptorSetLayoutBinding> const & bindings )
 	{
 		return device.createDescriptorSetLayout ( { {}, bindings } );
+	}
+
+	void CreateTexture (
+		vk::PhysicalDevice physicalDevice,
+		vk::Device device,
+		vk::CommandPool commandPool,
+		vk::Queue queue,
+		uint32_t queueFamilyIndex,
+		std::string const & filePath,
+		vk::Image & image,
+		vk::ImageView & imageView,
+		vk::DeviceMemory & memory
+	)
+	{
+		assert ( std::filesystem::exists ( filePath ) );
+
+		int width, height;
+		stbi_set_flip_vertically_on_load ( 1 );
+		auto data { stbi_load ( filePath.data (), &width, &height, nullptr, 4 ) };
+		auto size { static_cast <vk::DeviceSize> ( width * height * 4 ) };
+
+		{
+			vk::ImageCreateInfo createInfo
+			{
+				{},
+				vk::ImageType::e2D,
+				vk::Format::eR8G8B8A8Srgb,
+				{ static_cast < uint32_t > ( width ), static_cast < uint32_t > ( height ), 1 },
+				1,
+				1,
+				vk::SampleCountFlagBits::e1,
+				vk::ImageTiling::eOptimal,
+				vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+				{},
+				{},
+				vk::ImageLayout::eUndefined
+			};
+
+			image = device.createImage ( createInfo );
+		}
+
+		auto reqs { device.getImageMemoryRequirements ( image ) };
+		memory = AllocateMemory ( physicalDevice, device, MemoryTypes::deviceLocal, reqs.size );
+		device.bindImageMemory ( image, memory, 0 );
+
+		{
+			vk::ImageViewCreateInfo createInfo
+			{
+				{},
+				image,
+				vk::ImageViewType::e2D,
+				vk::Format::eR8G8B8A8Srgb,
+				{ vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity },
+				{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+			};
+
+			imageView = device.createImageView ( createInfo );
+		}
+
+		vk::Fence uploadFinishedFence { device.createFence ( {} ) };
+
+		vk::Buffer stagingBuffer { CreateBuffer ( device, BufferUsages::stagingBuffer, size ) };
+		vk::DeviceMemory stagingBufferMemory { AllocateMemory ( physicalDevice, device, MemoryTypes::hostVisible, size ) };
+		device.bindBufferMemory ( stagingBuffer, stagingBufferMemory, 0 );
+
+		auto stagingBufferData { device.mapMemory ( stagingBufferMemory, 0, size, {} ) };
+		std::memcpy ( stagingBufferData, data, size );
+		vk::MappedMemoryRange range { stagingBufferMemory, 0, size };
+		device.flushMappedMemoryRanges ( { range } );
+
+		auto commandBuffer { device.allocateCommandBuffers ( { commandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ] };
+
+		vk::CommandBufferBeginInfo beginInfo {};
+		commandBuffer.begin ( beginInfo );
+
+		// Transition layout to transfer dst optimal
+		{
+
+			vk::ImageMemoryBarrier imageMemoryBarrier (
+				vk::AccessFlagBits::eNone, vk::AccessFlagBits::eTransferWrite,
+				vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+				queueFamilyIndex, queueFamilyIndex,
+				image, { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+			);
+
+			auto imageMemoryBarriers = { imageMemoryBarrier };
+
+			commandBuffer.pipelineBarrier ( vk::PipelineStageFlagBits::eAllCommands,
+				vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlagBits::eByRegion, {}, {}, imageMemoryBarriers );
+		}
+
+		// Copy
+		vk::BufferImageCopy copyRegion { 0, 0, 0, { vk::ImageAspectFlagBits::eColor, 0, 0, 1 }, {}, 
+			{ static_cast <uint32_t> ( width ), static_cast <uint32_t> ( height ), 1 } };
+		
+		commandBuffer.copyBufferToImage ( stagingBuffer, image, vk::ImageLayout::eTransferDstOptimal, { copyRegion } );
+		
+		// Transition layout to shader read only optimal
+		{
+			vk::ImageMemoryBarrier imageMemoryBarrier (
+				vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead,
+				vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+				queueFamilyIndex, queueFamilyIndex,
+				image,
+				{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+			);
+
+			auto imageMemoryBarriers = { imageMemoryBarrier };
+
+			commandBuffer.pipelineBarrier ( vk::PipelineStageFlagBits::eTransfer,
+				vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlagBits::eByRegion, {}, {}, imageMemoryBarriers );
+		}
+
+		commandBuffer.end ();
+
+		Submit ( queue, { commandBuffer }, uploadFinishedFence );
+		device.waitForFences ( { uploadFinishedFence }, VK_FALSE, std::numeric_limits <uint64_t>::max () );
+
+		device.destroy ( stagingBuffer );
+		device.free ( stagingBufferMemory );
+		device.destroy ( uploadFinishedFence );
 	}
 }

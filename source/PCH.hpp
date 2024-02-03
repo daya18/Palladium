@@ -14,3 +14,5 @@
 #include <glm/gtx/string_cast.hpp>
 
 #include <vulkan/vulkan.hpp>
+
+#include "stb_image.h"
