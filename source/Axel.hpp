@@ -35,19 +35,33 @@ namespace pd
 
 		struct MaterialUniformBlock
 		{
-			glm::vec4 color;
+			glm::vec4 ambientColor { 1.0f, 1.0f, 1.0f, 1.0f };
+			glm::vec4 diffuseColor { 1.0f, 1.0f, 1.0f, 1.0f };
+			glm::vec4 specularColor { 1.0f, 1.0f, 1.0f, 1.0f };
+			glm::vec4 nothingColor;
 		};
 
 		struct ObjectInfo
 		{
 			int indexOffset;
-			int indexCount;
+			int indexCount;	
+			
+			uint32_t materialUniformBufferOffset;
+			vk::DescriptorSet texturesDescriptorSet;
+		};
+
+		struct Texture
+		{
+			vk::Image texImage;
+			vk::DeviceMemory texMemory;
+			vk::ImageView texImageView;
 		};
 
 		Dependencies deps;
 
 		vk::Sampler sampler;
 		vk::DescriptorSetLayout materialDSetLayout;
+		vk::DescriptorSetLayout texturesDSetLayout;
 		vk::DescriptorSetLayout cameraDSetLayout;
 
 		vk::PipelineLayout pipelineLayout;
@@ -62,9 +76,6 @@ namespace pd
 		vk::Buffer indexBuffer {};
 		vk::DeviceMemory indexBufferMemory {};
 		
-		vk::Image texImage;
-		vk::DeviceMemory texMemory;
-		vk::ImageView texImageView;
 		vk::Buffer materialUniformBuffer;
 		vk::DeviceMemory materialUniformBufferMemory;
 		vk::DescriptorSet materialDescriptorSet;
@@ -75,6 +86,7 @@ namespace pd
 
 		bool sceneLoaded { false };
 
+		std::vector <Texture> textures;
 		std::vector <ObjectInfo> objectInfos;
 	};
 }

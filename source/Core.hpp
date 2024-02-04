@@ -95,4 +95,6 @@ namespace pd
 		vk::ImageView &,
 		vk::DeviceMemory &
 	);
+
+	vk::Sampler CreateDefaultSampler ( vk::Device );
 }

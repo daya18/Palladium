@@ -559,6 +559,7 @@ namespace pd
 		std::memcpy ( stagingBufferData, data, size );
 		vk::MappedMemoryRange range { stagingBufferMemory, 0, size };
 		device.flushMappedMemoryRanges ( { range } );
+		device.unmapMemory ( stagingBufferMemory );
 
 		auto commandBuffer { device.allocateCommandBuffers ( { commandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ] };
 
@@ -574,6 +575,7 @@ namespace pd
 		device.destroy ( stagingBuffer );
 		device.free ( stagingBufferMemory );
 		device.destroy ( uploadFinishedFence );
+		device.free ( commandPool, commandBuffer );
 	}
 
 	void CreateBuffer (
@@ -599,10 +601,11 @@ namespace pd
 		std::vector <vk::DescriptorPoolSize> poolSizes
 		{
 			{ vk::DescriptorType::eUniformBuffer, 1000 },
-			{ vk::DescriptorType::eSampledImage, 1000 }
+			{ vk::DescriptorType::eSampledImage, 1000 },
+			{ vk::DescriptorType::eUniformBufferDynamic, 1000 }
 		};
 
-		vk::DescriptorPoolCreateInfo info { {}, 1000, poolSizes };
+		vk::DescriptorPoolCreateInfo info { vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 1000, poolSizes };
 		return device.createDescriptorPool ( info );
 	}
 
@@ -725,6 +728,7 @@ namespace pd
 		std::memcpy ( stagingBufferData, data, size );
 		vk::MappedMemoryRange range { stagingBufferMemory, 0, size };
 		device.flushMappedMemoryRanges ( { range } );
+		device.unmapMemory ( stagingBufferMemory );
 
 		auto commandBuffer { device.allocateCommandBuffers ( { commandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ] };
 
@@ -733,7 +737,6 @@ namespace pd
 
 		// Transition layout to transfer dst optimal
 		{
-
 			vk::ImageMemoryBarrier imageMemoryBarrier (
 				vk::AccessFlagBits::eNone, vk::AccessFlagBits::eTransferWrite,
 				vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
@@ -777,5 +780,32 @@ namespace pd
 		device.destroy ( stagingBuffer );
 		device.free ( stagingBufferMemory );
 		device.destroy ( uploadFinishedFence );
+		device.free ( commandPool, commandBuffer );
 	}
+
+	vk::Sampler CreateDefaultSampler ( vk::Device device )
+	{
+		vk::SamplerCreateInfo createInfo
+		{
+			{},
+			vk::Filter::eLinear,
+			vk::Filter::eLinear,
+			vk::SamplerMipmapMode::eLinear,
+			vk::SamplerAddressMode::eRepeat,
+			vk::SamplerAddressMode::eRepeat,
+			vk::SamplerAddressMode::eRepeat,
+			0.0F,
+			VK_FALSE,
+			0.0f,
+			VK_FALSE,
+			vk::CompareOp::eNever,
+			0.0f,
+			0.0f,
+			vk::BorderColor::eFloatOpaqueBlack,
+			VK_FALSE
+		};
+
+		return device.createSampler ( createInfo );
+	}
+
 }

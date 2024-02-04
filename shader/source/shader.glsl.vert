@@ -5,7 +5,7 @@ layout ( location = 1 ) in vec2 i_textureCoordinates;
 
 layout ( location = 0 ) out vec2 o_textureCoordinates;
 
-layout ( set = 1, binding = 0 ) uniform CameraBlock
+layout ( set = 0, binding = 0 ) uniform CameraBlock
 {
 	mat4 viewMatrix;
 	mat4 projectionMatrix;
