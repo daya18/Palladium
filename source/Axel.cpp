@@ -65,9 +65,9 @@ namespace pd
 		deps.device.destroy ( sampler );
 	}
 
-	void Axel::LoadScene ( std::string const & filePath )
+	void Axel::LoadScene ( std::filesystem::path const & path )
 	{
-		assert ( std::filesystem::exists ( filePath ) );
+		assert ( std::filesystem::exists ( path ) );
 
 		if ( sceneLoaded )
 			UnloadScene ();
@@ -75,12 +75,12 @@ namespace pd
 		sceneLoaded = true;
 		
 		objl::Loader loader;
-		loader.LoadFile ( filePath );
+		loader.LoadFile ( path.generic_string () );
 
 		std::vector <float> vertices;
 		std::vector <uint32_t> indices;
 		std::vector <MaterialUniformBlock> materials;
-		std::vector <std::string> texturePaths { "image/White.png" };
+		std::vector <std::filesystem::path> texturePaths { std::filesystem::current_path () / "image" / "White.png" };
 
 		struct ObjectTextureIndices
 		{
@@ -122,35 +122,28 @@ namespace pd
 				vertices.push_back ( vertex.TextureCoordinate.Y );
 			}
 
-			if ( ! mesh.MeshMaterial.name.empty () )
+			glm::vec3 ambientColor { mesh.MeshMaterial.Ka.X, mesh.MeshMaterial.Ka.Y, mesh.MeshMaterial.Ka.Z };
+			glm::vec3 diffuseColor { mesh.MeshMaterial.Kd.X, mesh.MeshMaterial.Kd.Y, mesh.MeshMaterial.Kd.Z };
+			glm::vec3 specularColor { mesh.MeshMaterial.Ks.X, mesh.MeshMaterial.Ks.Y, mesh.MeshMaterial.Ks.Z };
+
+			materials.push_back ( {
+				{ ambientColor == glm::zero <glm::vec3> () ? glm::one <glm::vec3> () : ambientColor, 1.0f },
+				{ diffuseColor == glm::zero <glm::vec3> () ? glm::one <glm::vec3> () : diffuseColor, 1.0f },
+				{ specularColor == glm::zero <glm::vec3> () ? glm::one <glm::vec3> () : specularColor, 1.0f },
+			});
+
+			if ( ! mesh.MeshMaterial.map_Ka.empty () )
 			{
-				glm::vec3 ambientColor { mesh.MeshMaterial.Ka.X, mesh.MeshMaterial.Ka.Y, mesh.MeshMaterial.Ka.Z };
-				glm::vec3 diffuseColor { mesh.MeshMaterial.Kd.X, mesh.MeshMaterial.Kd.Y, mesh.MeshMaterial.Kd.Z };
-				glm::vec3 specularColor { mesh.MeshMaterial.Ks.X, mesh.MeshMaterial.Ks.Y, mesh.MeshMaterial.Ks.Z };
-
-				materials.push_back ( {
-					{ ambientColor == glm::zero <glm::vec3> () ? glm::one <glm::vec3> () : ambientColor, 1.0f },
-					{ diffuseColor == glm::zero <glm::vec3> () ? glm::one <glm::vec3> () : diffuseColor, 1.0f },
-					{ specularColor == glm::zero <glm::vec3> () ? glm::one <glm::vec3> () : specularColor, 1.0f },
-				});
-
-				if ( ! mesh.MeshMaterial.map_Ka.empty () )
-				{
-					objectTextureIndices.ambient = texturePaths.size ();
-					texturePaths.push_back ( mesh.MeshMaterial.map_Ka );
-				}
-
-				if ( ! mesh.MeshMaterial.map_Kd.empty () )
-				{
-					objectTextureIndices.diffuse = texturePaths.size ();
-					texturePaths.push_back ( mesh.MeshMaterial.map_Kd );
-				}
-			}
-			else
-			{
-				materials.push_back ( {} );
+				objectTextureIndices.ambient = texturePaths.size ();
+				texturePaths.push_back ( mesh.MeshMaterial.map_Ka );
 			}
 
+			if ( ! mesh.MeshMaterial.map_Kd.empty () )
+			{
+				objectTextureIndices.diffuse = texturePaths.size ();
+				texturePaths.push_back ( mesh.MeshMaterial.map_Kd );
+			}
+		
 			textureIndices.push_back ( objectTextureIndices );
 			objectInfos.push_back ( objectInfo );
 		}
@@ -178,13 +171,18 @@ namespace pd
 
 		for ( auto const & texturePath : texturePaths )
 		{
-			assert ( std::filesystem::exists ( texturePath ) );
+			auto textureFilePath { 
+				texturePath.is_absolute () ? texturePath
+				: std::filesystem::absolute ( path.parent_path () ) / texturePath
+			};
+
+			assert ( std::filesystem::exists ( textureFilePath ) );
 
 			Texture texture;
 			
 			CreateTexture ( deps.physicalDevice, deps.device, transferCommandPool,
 				deps.queues->transferQueue, deps.queues->transferQueueFamilyIndex,
-				texturePath, texture.texImage, texture.texImageView, texture.texMemory );		
+				textureFilePath.generic_string (), texture.texImage, texture.texImageView, texture.texMemory);
 			
 			textures.push_back ( texture );
 		}

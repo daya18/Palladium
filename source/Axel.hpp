@@ -19,7 +19,7 @@ namespace pd
 		void Initialize ( Dependencies const & );
 		void Shutdown ();
 
-		void LoadScene ( std::string const & filePath );
+		void LoadScene ( std::filesystem::path const & sceneFilePath );
 		void UnloadScene ();
 
 		void SetCamera ( Camera const & );

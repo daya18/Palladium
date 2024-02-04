@@ -20,7 +20,7 @@ layout ( set = 2, binding = 3 ) uniform texture2D u_specularTexture;
 
 void main ()
 {
-	vec3 ambient = material.ambientColor.xyz * texture ( sampler2D ( u_ambientTexture, u_sampler ), i_textureCoordinates ).rgb * 0.1f;
+	vec3 ambient = material.ambientColor.xyz * texture ( sampler2D ( u_ambientTexture, u_sampler ), i_textureCoordinates ).rgb * 0.5f;
 	vec3 diffuse = material.diffuseColor.xyz * texture ( sampler2D ( u_diffuseTexture, u_sampler ), i_textureCoordinates ).rgb * 1.0f;
 
 	//o_color = vec4 ( 1, 1, 1, 1 );
