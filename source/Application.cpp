@@ -62,6 +62,12 @@ namespace pd
 		axel.SetCamera ( camera );
 
 		recterer.Initialize ( { physicalDevice, device, &queues, renderPass, transferCommandPool } );
+
+		int rectangle1 { recterer.CreateRectangle () };
+		int rectangle2 { recterer.CreateRectangle () };
+
+		recterer.SetRectangleTransform ( rectangle1, CreateTransformMatrix ( { 100, 100, 0 }, { 200, 200, 1 } ) );
+		recterer.SetRectangleTransform ( rectangle2, CreateTransformMatrix ( { 450, 100, 0 }, { 200, 200, 1 } ) );
 	}
 
 	Application::~Application ()

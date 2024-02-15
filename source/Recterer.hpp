@@ -29,9 +29,8 @@ namespace pd
 		void SetRectangleTransform ( int id, glm::mat4 const & );
 		void SetRectangleColor ( int id, glm::vec4 const & );
 		void SetRectangleTexture ( int id, std::string const & texture );
-
-		void AddRectangleToBatch ( int rectangleId, std::string const & batchTexture );
-		void RemoveRectangleFromBatch ( int rectangleId );
+		void SetRectangleBorderSizes ( int id, float left, float right, float bottom, float top );
+		void SetRectangleBorderColor ( int id, glm::vec4 const & );
 
 	private:
 		static inline constexpr int maxInstances { 10000 };
@@ -59,10 +58,20 @@ namespace pd
 			glm::mat4 transforms [ maxInstances ];
 		};
 
-		struct InstanceColorsData
+		struct InstanceFragmentShaderData
+		{
+			glm::vec4 color;
+			glm::vec4 borderColor;
+			glm::vec4 borderSizes;
+		};
+
+		/*struct InstanceColorsData
 		{
 			glm::vec4 colors [ maxInstances ];
-		};
+		};*/
+
+		void AddRectangleToBatch ( int rectangleId, std::string const & batchTexture );
+		void RemoveRectangleFromBatch ( int rectangleId );
 
 		Batch CreateBatch ( std::string const & texture, std::vector <int> instanceIndices );
 		void DeleteBatch ( Batch const & );

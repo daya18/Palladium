@@ -45,8 +45,9 @@ namespace pd
 			instanceTransformsBuffer, instanceTransformsBufferMemory );
 
 		// Create instance colors buffer
-		CreateBuffer ( deps.physicalDevice, deps.device, BufferUsages::uniformBuffer, sizeof ( InstanceColorsData ),
-			instanceColorsBuffer, instanceColorsBufferMemory );
+		CreateBuffer ( deps.physicalDevice, deps.device, BufferUsages::uniformBuffer, 
+			sizeof ( InstanceFragmentShaderData ) * maxInstances, instanceColorsBuffer, instanceColorsBufferMemory );
+
 		{
 			vk::DescriptorBufferInfo instanceTransformsBufferInfo { instanceTransformsBuffer, 0, sizeof ( glm::mat4 ) * maxInstances };
 			vk::DescriptorBufferInfo instanceColorsBufferInfo { instanceColorsBuffer, 0, sizeof ( glm::vec4 ) * maxInstances };
@@ -132,7 +133,9 @@ namespace pd
 		SetRectangleTexture ( id, "image/White.png");
 		SetRectangleColor ( id, { 1, 1, 1, 1 } );
 		SetRectangleTransform ( id, glm::scale ( glm::identity <glm::mat4> (), { 100, 100, 1 } ) );
-		
+		SetRectangleBorderSizes ( id, 0.02f, 0.02f, 0.02f, 0.02f );
+		SetRectangleBorderColor ( id, { 1.0f, 0.0f, 0.0f, 1.0f } );
+
 		return id;
 	}
 
@@ -151,7 +154,23 @@ namespace pd
 	void Recterer::SetRectangleColor ( int id, glm::vec4 const & color )
 	{
 		UpdateBuffer ( deps.physicalDevice, deps.device, deps.transferCommandPool, deps.queues->transferQueue,
-			instanceColorsBuffer, glm::value_ptr ( color ), sizeof ( glm::vec4 ), id * sizeof ( glm::vec4 ) );
+			instanceColorsBuffer, glm::value_ptr ( color ), sizeof ( glm::vec4 ), id * sizeof ( InstanceFragmentShaderData ) + 0 );
+	}
+	
+	void Recterer::SetRectangleBorderSizes ( int id, float left, float right, float bottom, float top )
+	{
+		glm::vec4 sizes { left, right, bottom, top };
+
+		UpdateBuffer ( deps.physicalDevice, deps.device, deps.transferCommandPool, deps.queues->transferQueue,
+			instanceColorsBuffer, glm::value_ptr ( sizes ), 
+			sizeof ( glm::vec4 ), id * sizeof ( InstanceFragmentShaderData ) + ( sizeof ( glm::vec4 ) * 2 ) );
+	}
+
+	void Recterer::SetRectangleBorderColor ( int id, glm::vec4 const & color )
+	{
+		UpdateBuffer ( deps.physicalDevice, deps.device, deps.transferCommandPool, deps.queues->transferQueue,
+			instanceColorsBuffer, glm::value_ptr ( color ),
+			sizeof ( glm::vec4 ), id * sizeof ( InstanceFragmentShaderData ) + sizeof ( glm::vec4 ) );
 	}
 
 	void Recterer::SetRectangleTexture ( int id, std::string const & texture )
@@ -185,6 +204,9 @@ namespace pd
 		}
 		
 		batchIt->second.instanceIndices.push_back ( { rectangleId, 0, 0, 0 } );
+		
+		deps.device.destroy ( batchIt->second.instanceIndexBuffer );
+		deps.device.free ( batchIt->second.instanceIndexBufferMemory );
 
 		CreateBuffer ( deps.physicalDevice, deps.device, deps.transferCommandPool, deps.queues->transferQueue, 
 			BufferUsages::uniformBuffer,
@@ -222,6 +244,9 @@ namespace pd
 		batch.instanceIndices.erase ( 
 			std::find ( batch.instanceIndices.begin (), batch.instanceIndices.end (), 
 				glm::vec4 { rectangleId, 0, 0, 0 } ) );
+
+		deps.device.destroy ( batch.instanceIndexBuffer );
+		deps.device.free ( batch.instanceIndexBufferMemory );
 
 		CreateBuffer ( deps.physicalDevice, deps.device, deps.transferCommandPool, deps.queues->transferQueue,
 			BufferUsages::uniformBuffer,

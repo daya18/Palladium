@@ -864,4 +864,16 @@ namespace pd
 		commandBuffer.setScissor ( 0, scissors );
 	}
 
+	glm::mat4 CreateTransformMatrix (
+		glm::vec3 const & translation,
+		glm::vec3 const & scale
+	)
+	{
+		glm::mat4 constexpr identityMat { glm::identity <glm::mat4> () };
+
+		glm::mat4 translationMat { glm::translate ( identityMat, translation ) };
+		glm::mat4 scaleMat { glm::scale ( identityMat, scale ) };
+
+		return translationMat * scaleMat;
+	}
 }

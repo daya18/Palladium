@@ -108,4 +108,11 @@ namespace pd
 	vk::Sampler CreateDefaultSampler ( vk::Device );
 
 	void SetViewport ( vk::CommandBuffer, vk::Extent2D viewport );
+
+
+	glm::mat4 CreateTransformMatrix (
+		glm::vec3 const & translation = { 0, 0, 0 },
+		glm::vec3 const & scale = { 1, 1, 1 }
+	);
+
 }
