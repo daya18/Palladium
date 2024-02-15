@@ -2,7 +2,10 @@
 
 #include "Core.hpp"
 #include "Axel.hpp"
+#include "Recterer.hpp"
 #include "Camera.hpp"
+
+#include <vk_mem_alloc.h>
 
 namespace pd
 {
@@ -30,6 +33,7 @@ namespace pd
 		vk::PhysicalDevice physicalDevice;
 		vk::Device device;
 		DeviceQueues queues;
+		VmaAllocator allocator;
 		vk::SurfaceFormatKHR surfaceFormat;
 		vk::SwapchainKHR swapchain;
 		vk::Extent2D swapchainExtent;
@@ -40,12 +44,14 @@ namespace pd
 		vk::ImageView depthBufferView;
 		std::vector <vk::Framebuffer> framebuffers;
 		vk::CommandPool graphicsCommandPool;
+		vk::CommandPool transferCommandPool;
 		vk::CommandBuffer renderCommandBuffer;
 		vk::Semaphore imageAvailableSemaphore;
 		vk::Semaphore renderFinishedSemaphore;
 		vk::Fence renderFinishedFence;
 
 		Axel axel;
+		Recterer recterer;
 
 		float cameraMoveSensitivity { 0.01f };
 		float cameraTurnSensitivity { 0.2f };

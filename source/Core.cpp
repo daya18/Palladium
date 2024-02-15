@@ -30,7 +30,9 @@ namespace pd
 
 	vk::Instance CreateInstance ( SDL_Window * window )
 	{
-		vk::ApplicationInfo appInfo { "Palladium", 1, "", 0, vk::enumerateInstanceVersion () };
+		auto instanceVersion { vk::enumerateInstanceVersion () };
+
+		vk::ApplicationInfo appInfo { "Palladium", 1, "", 0, instanceVersion };
 
 		std::vector <char const *> layers { "VK_LAYER_KHRONOS_validation" };
 
@@ -294,13 +296,16 @@ namespace pd
 		return framebuffers;
 	}
 
-	vk::PipelineLayout CreatePipelineLayout ( vk::Device device, std::vector <vk::DescriptorSetLayout> const & descriptorSetLayouts )
+	vk::PipelineLayout CreatePipelineLayout ( 
+		vk::Device device, 
+		std::vector <vk::DescriptorSetLayout> const & descriptorSetLayouts, 
+		std::vector <vk::PushConstantRange> const & pushConstantRanges )
 	{
 		vk::PipelineLayoutCreateInfo createInfo
 		{
 			{},
 			descriptorSetLayouts,
-			{}
+			pushConstantRanges
 		};
 
 		return device.createPipelineLayout ( createInfo );
@@ -508,7 +513,10 @@ namespace pd
 			{
 				if ( type.propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal )
 				{
-					typeFound = true; break;
+					if ( memoryProperties.memoryHeaps [ type.heapIndex ].size >= size )
+					{
+						typeFound = true; break;
+					}
 				}
 				++typeIndex;
 			}
@@ -520,8 +528,11 @@ namespace pd
 			for ( auto const & type : memoryProperties.memoryTypes )
 			{
 				if ( type.propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent )
-				{
-					typeFound = true; break;
+				{		
+					if ( memoryProperties.memoryHeaps [ type.heapIndex ].size >= size )
+					{
+						typeFound = true; break;
+					}
 				}
 				++typeIndex;
 			}
@@ -533,7 +544,10 @@ namespace pd
 			{
 				if ( type.propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible )
 				{
-					typeFound = true; break;
+					if ( memoryProperties.memoryHeaps [ type.heapIndex ].size >= size )
+					{
+						typeFound = true; break;
+					}
 				}
 				++typeIndex;
 			}
@@ -547,7 +561,7 @@ namespace pd
 	}
 
 	void UpdateBuffer ( vk::PhysicalDevice physicalDevice, vk::Device device, vk::CommandPool commandPool, 
-		vk::Queue queue, vk::Buffer buffer, void const * data, vk::DeviceSize size )
+		vk::Queue queue, vk::Buffer buffer, void const * data, vk::DeviceSize size, vk::DeviceSize offset )
 	{
 		vk::Fence uploadFinishedFence { device.createFence ( {} ) };
 
@@ -565,7 +579,7 @@ namespace pd
 
 		vk::CommandBufferBeginInfo beginInfo {};
 		commandBuffer.begin ( beginInfo );
-		vk::BufferCopy copyRegion { 0, 0, size };
+		vk::BufferCopy copyRegion { 0, offset, size };
 		commandBuffer.copyBuffer ( stagingBuffer, buffer, { copyRegion } );
 		commandBuffer.end ();
 
@@ -596,11 +610,26 @@ namespace pd
 		UpdateBuffer ( physicalDevice, device, commandPool, queue, buffer, data, size );
 	}
 
+	void CreateBuffer (
+		vk::PhysicalDevice physicalDevice,
+		vk::Device device,
+		BufferUsages usage,
+		vk::DeviceSize size,
+		vk::Buffer & buffer,
+		vk::DeviceMemory & memory
+	)
+	{
+		buffer = CreateBuffer ( device, usage, size );
+		memory = AllocateMemory ( physicalDevice, device, MemoryTypes::deviceLocal, size );
+		device.bindBufferMemory ( buffer, memory, 0 );
+	}
+
 	vk::DescriptorPool CreateDescriptorPool ( vk::Device device )
 	{
 		std::vector <vk::DescriptorPoolSize> poolSizes
 		{
 			{ vk::DescriptorType::eUniformBuffer, 1000 },
+			{ vk::DescriptorType::eSampler, 1000 },
 			{ vk::DescriptorType::eSampledImage, 1000 },
 			{ vk::DescriptorType::eUniformBufferDynamic, 1000 }
 		};
@@ -673,11 +702,17 @@ namespace pd
 		vk::DeviceMemory & memory
 	)
 	{
+		std::cout << "Creating texture: " << filePath << std::endl;
+
 		assert ( std::filesystem::exists ( filePath ) );
 
 		int width, height;
 		stbi_set_flip_vertically_on_load ( 1 );
 		auto data { stbi_load ( filePath.data (), &width, &height, nullptr, 4 ) };
+
+		if ( ! data )
+			std::cout << stbi_failure_reason () << std::endl;
+
 		auto size { static_cast <vk::DeviceSize> ( width * height * 4 ) };
 
 		{
@@ -730,6 +765,8 @@ namespace pd
 		device.flushMappedMemoryRanges ( { range } );
 		device.unmapMemory ( stagingBufferMemory );
 
+		stbi_image_free ( data );
+
 		auto commandBuffer { device.allocateCommandBuffers ( { commandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ] };
 
 		vk::CommandBufferBeginInfo beginInfo {};
@@ -781,6 +818,8 @@ namespace pd
 		device.free ( stagingBufferMemory );
 		device.destroy ( uploadFinishedFence );
 		device.free ( commandPool, commandBuffer );
+
+		std::cout << "Done" << std::endl;
 	}
 
 	vk::Sampler CreateDefaultSampler ( vk::Device device )
@@ -806,6 +845,23 @@ namespace pd
 		};
 
 		return device.createSampler ( createInfo );
+	}
+
+	void SetViewport ( vk::CommandBuffer commandBuffer, vk::Extent2D viewportExtent )
+	{
+		std::vector <vk::Viewport> viewports { {
+			0,
+			static_cast < float > ( viewportExtent.height ),
+			static_cast < float > ( viewportExtent.width ),
+			-static_cast < float > ( viewportExtent.height ),
+			0.0f,
+			1.0f
+		} };
+
+		std::vector <vk::Rect2D> scissors { { { 0, 0 }, viewportExtent } };
+
+		commandBuffer.setViewport ( 0, viewports );
+		commandBuffer.setScissor ( 0, scissors );
 	}
 
 }

@@ -36,7 +36,7 @@ namespace pd
 	vk::RenderPass CreateRenderPass ( vk::Device, vk::Format outputFormat );
 	std::vector <vk::ImageView> CreateSwapchainImageViews ( vk::Device, vk::SwapchainKHR, vk::Format format );
 	std::vector <vk::Framebuffer> CreateFramebuffers ( vk::Device, vk::RenderPass, std::vector <vk::ImageView> attachments, vk::ImageView depthAttachment, glm::vec2 const & size );
-	vk::PipelineLayout CreatePipelineLayout ( vk::Device, std::vector <vk::DescriptorSetLayout> const & = {} );
+	vk::PipelineLayout CreatePipelineLayout ( vk::Device, std::vector <vk::DescriptorSetLayout> const & = {}, std::vector <vk::PushConstantRange> const & pushConstantRanges = {} );
 	vk::ShaderModule CreateShaderModuleFromFile ( vk::Device, std::string const & filePath );
 
 	struct GraphicsPipelineCreateInfo
@@ -65,7 +65,7 @@ namespace pd
 	vk::DeviceMemory AllocateMemory ( vk::PhysicalDevice, vk::Device, MemoryTypes, vk::DeviceSize size );
 	
 	void UpdateBuffer ( vk::PhysicalDevice physicalDevice, vk::Device device, vk::CommandPool commandPool,
-		vk::Queue queue, vk::Buffer buffer, void const * data, vk::DeviceSize size );
+		vk::Queue queue, vk::Buffer buffer, void const * data, vk::DeviceSize size, vk::DeviceSize offset = 0 );
 
 	void CreateBuffer ( 
 		vk::PhysicalDevice,
@@ -77,6 +77,15 @@ namespace pd
 		vk::DeviceSize size,
 		vk::Buffer &, 
 		vk::DeviceMemory & 
+	);
+
+	void CreateBuffer (
+		vk::PhysicalDevice,
+		vk::Device,
+		BufferUsages usage,
+		vk::DeviceSize,
+		vk::Buffer &,
+		vk::DeviceMemory &
 	);
 
 	vk::DescriptorPool CreateDescriptorPool ( vk::Device );
@@ -97,4 +106,6 @@ namespace pd
 	);
 
 	vk::Sampler CreateDefaultSampler ( vk::Device );
+
+	void SetViewport ( vk::CommandBuffer, vk::Extent2D viewport );
 }

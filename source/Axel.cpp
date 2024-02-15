@@ -248,20 +248,8 @@ namespace pd
 		if ( ! sceneLoaded ) return;
 
 		renderCommandBuffer.bindPipeline ( vk::PipelineBindPoint::eGraphics, graphicsPipeline );
-
-		std::vector <vk::Viewport> viewports { { 
-			0, 
-			static_cast < float > ( viewportExtent.height ), 
-			static_cast < float > ( viewportExtent.width ),
-			-static_cast < float > ( viewportExtent.height ),
-			0.0f, 
-			1.0f 
-		} };
-
-		std::vector <vk::Rect2D> scissors { { { 0, 0 }, viewportExtent } };
-
-		renderCommandBuffer.setViewport ( 0, viewports );
-		renderCommandBuffer.setScissor ( 0, scissors );
+		
+		SetViewport ( renderCommandBuffer, viewportExtent );
 
 		renderCommandBuffer.bindDescriptorSets ( vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, { cameraDescriptorSet }, {} );
 		renderCommandBuffer.bindVertexBuffers ( 0, { vertexBuffer }, { 0 } );

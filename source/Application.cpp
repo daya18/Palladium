@@ -2,6 +2,14 @@
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE;
 
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
+#define VMA_VULKAN_VERSION 1002000
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+
+#include "IDManager.hpp"
+
 namespace pd
 {
 	Application::Application ()
@@ -18,6 +26,20 @@ namespace pd
 		surfaceFormat = SelectSurfaceFormat ( physicalDevice, surface );
 		CreateDevice ( physicalDevice, surface, device, queues );
 		VULKAN_HPP_DEFAULT_DISPATCHER.init ( device );
+
+		VmaVulkanFunctions vulkanFunctions {};
+		vulkanFunctions.vkGetInstanceProcAddr = VULKAN_HPP_DEFAULT_DISPATCHER.vkGetInstanceProcAddr;
+		vulkanFunctions.vkGetDeviceProcAddr = VULKAN_HPP_DEFAULT_DISPATCHER.vkGetDeviceProcAddr;
+
+		VmaAllocatorCreateInfo allocatorCreateInfo {};
+		allocatorCreateInfo.instance = instance;
+		allocatorCreateInfo.physicalDevice = physicalDevice;
+		allocatorCreateInfo.device = device;
+		allocatorCreateInfo.vulkanApiVersion = vk::enumerateInstanceVersion ();
+		allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+
+		vmaCreateAllocator ( &allocatorCreateInfo, &allocator );
+
 		auto windowSize { GetWindowSize ( window ) };
 		swapchain = CreateSwapchain ( physicalDevice, device, surface, surfaceFormat, windowSize );
 		swapchainExtent = vk::Extent2D { static_cast < uint32_t > ( windowSize.x ), static_cast < uint32_t > ( windowSize.y ) };
@@ -26,6 +48,7 @@ namespace pd
 		CreateDepthBuffer ( physicalDevice, device, swapchainExtent, depthBuffer, depthBufferMemory, depthBufferView );
 		framebuffers = CreateFramebuffers ( device, renderPass, swapchainImageViews, depthBufferView, windowSize );
 		graphicsCommandPool = device.createCommandPool ( { { vk::CommandPoolCreateFlagBits::eResetCommandBuffer }, queues.graphicsQueueFamilyIndex } );
+		transferCommandPool = device.createCommandPool ( { { vk::CommandPoolCreateFlagBits::eResetCommandBuffer }, queues.transferQueueFamilyIndex } );
 		renderCommandBuffer = device.allocateCommandBuffers ( { graphicsCommandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ];
 		imageAvailableSemaphore = device.createSemaphore ( {} );
 		renderFinishedSemaphore = device.createSemaphore ( {} );
@@ -35,8 +58,10 @@ namespace pd
 		camera.SetPosition ( { 0.0f, 0.0f, 1.0f } );
 
 		axel.Initialize ( { physicalDevice, device, &queues, renderPass } );
-		axel.LoadScene ( "scene/TestScene.obj" );
+		axel.LoadScene ( "scene/Plane.obj" );
 		axel.SetCamera ( camera );
+
+		recterer.Initialize ( { physicalDevice, device, &queues, renderPass, transferCommandPool } );
 	}
 
 	Application::~Application ()
@@ -44,6 +69,8 @@ namespace pd
 		device.waitIdle ();
 
 		axel.Shutdown ();
+		
+		recterer.Shutdown ();
 
 		device.destroy ( renderFinishedFence );
 		device.destroy ( renderFinishedSemaphore );
@@ -52,6 +79,7 @@ namespace pd
 		device.freeCommandBuffers ( graphicsCommandPool, { renderCommandBuffer } );
 
 		device.destroy ( graphicsCommandPool );
+		device.destroy ( transferCommandPool );
 
 		for ( auto const & framebuffer : framebuffers )
 			device.destroy ( framebuffer );
@@ -109,6 +137,7 @@ namespace pd
 					auto windowSize { GetWindowSize ( window ) };
 					camera.SetViewportSize ( windowSize );
 					axel.SetCamera ( camera );
+					recterer.SetViewportSize ( windowSize );
 					break;
 
 				case SDL_WINDOWEVENT_MINIMIZED:
@@ -217,6 +246,7 @@ namespace pd
 		renderCommandBuffer.beginRenderPass ( renderPassBeginInfo, vk::SubpassContents::eInline );
 		
 		axel.RecordRender ( renderCommandBuffer, swapchainExtent );
+		recterer.RecordRender ( renderCommandBuffer, swapchainExtent );
 
 		renderCommandBuffer.endRenderPass ();
 

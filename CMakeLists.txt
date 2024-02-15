@@ -33,6 +33,11 @@ include ( "FindVulkan" )
 message ( "Vulkan Found: ${Vulkan_FOUND}" )
 target_link_libraries ( Palladium PRIVATE Vulkan::Vulkan )
 
+# Add Vulkan Memory Allocator
+add_subdirectory ( external/VulkanMemoryAllocator )
+target_link_libraries ( Palladium PRIVATE VulkanMemoryAllocator )
+
+
 target_include_directories ( Palladium PRIVATE 
 	"external/OBJ-Loader/Source"
 	external
@@ -41,7 +46,7 @@ target_include_directories ( Palladium PRIVATE
 target_sources ( Palladium PRIVATE 
 	"source/Main.cpp"  
 	source/Core.cpp
- "source/Application.cpp"  "source/Axel.cpp" "source/Camera.cpp")
+ "source/Application.cpp"  "source/Axel.cpp" "source/Camera.cpp" "source/Recterer.cpp"  "source/IDManager.cpp"  "source/GUIManager.cpp")
 
 # Setup precompiled headers
 target_precompile_headers ( Palladium PRIVATE source/PCH.hpp )

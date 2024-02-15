@@ -13,7 +13,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <vulkan/vulkan.hpp>
 
-#include "stb_image.h"
+#include <stb_image.h>
+
+#include <vk_mem_alloc.h>
