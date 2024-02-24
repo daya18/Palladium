@@ -712,16 +712,45 @@ namespace pd
 
 		if ( ! data )
 			std::cout << stbi_failure_reason () << std::endl;
+		
+		CreateTexture ( physicalDevice, device, commandPool, queue, queueFamilyIndex, data,
+			{ static_cast < uint32_t > ( width ), static_cast < uint32_t > ( height ) }, 
+			4, image, imageView, memory );
+		
+		std::cout << "Done" << std::endl;
+	}
+	
+	void CreateTexture (
+		vk::PhysicalDevice physicalDevice,
+		vk::Device device,
+		vk::CommandPool commandPool,
+		vk::Queue queue,
+		uint32_t queueFamilyIndex,
+		unsigned char * data,
+		vk::Extent2D extent,
+		unsigned int components,
+		vk::Image & image,
+		vk::ImageView & imageView,
+		vk::DeviceMemory & memory
+	)
+	{
+		auto size { static_cast < vk::DeviceSize > ( extent.width * extent.height * components ) };
 
-		auto size { static_cast <vk::DeviceSize> ( width * height * 4 ) };
+		auto format {
+			components == 4 ? vk::Format::eR8G8B8A8Srgb
+			: components == 3 ? vk::Format::eR8G8B8Srgb
+			: components == 2 ? vk::Format::eR8G8Srgb
+			: vk::Format::eR8Srgb
+
+		};
 
 		{
 			vk::ImageCreateInfo createInfo
 			{
 				{},
 				vk::ImageType::e2D,
-				vk::Format::eR8G8B8A8Srgb,
-				{ static_cast < uint32_t > ( width ), static_cast < uint32_t > ( height ), 1 },
+				format,
+				{ extent.width, extent.height, 1 },
 				1,
 				1,
 				vk::SampleCountFlagBits::e1,
@@ -745,7 +774,7 @@ namespace pd
 				{},
 				image,
 				vk::ImageViewType::e2D,
-				vk::Format::eR8G8B8A8Srgb,
+				format,
 				{ vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity },
 				{ vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
 			};
@@ -764,8 +793,6 @@ namespace pd
 		vk::MappedMemoryRange range { stagingBufferMemory, 0, size };
 		device.flushMappedMemoryRanges ( { range } );
 		device.unmapMemory ( stagingBufferMemory );
-
-		stbi_image_free ( data );
 
 		auto commandBuffer { device.allocateCommandBuffers ( { commandPool, vk::CommandBufferLevel::ePrimary, 1 } ) [ 0 ] };
 
@@ -788,11 +815,11 @@ namespace pd
 		}
 
 		// Copy
-		vk::BufferImageCopy copyRegion { 0, 0, 0, { vk::ImageAspectFlagBits::eColor, 0, 0, 1 }, {}, 
-			{ static_cast <uint32_t> ( width ), static_cast <uint32_t> ( height ), 1 } };
-		
+		vk::BufferImageCopy copyRegion { 0, 0, 0, { vk::ImageAspectFlagBits::eColor, 0, 0, 1 }, {},
+			{ extent.width, extent.height, 1 } };
+
 		commandBuffer.copyBufferToImage ( stagingBuffer, image, vk::ImageLayout::eTransferDstOptimal, { copyRegion } );
-		
+
 		// Transition layout to shader read only optimal
 		{
 			vk::ImageMemoryBarrier imageMemoryBarrier (
@@ -818,8 +845,6 @@ namespace pd
 		device.free ( stagingBufferMemory );
 		device.destroy ( uploadFinishedFence );
 		device.free ( commandPool, commandBuffer );
-
-		std::cout << "Done" << std::endl;
 	}
 
 	vk::Sampler CreateDefaultSampler ( vk::Device device )

@@ -105,6 +105,20 @@ namespace pd
 		vk::DeviceMemory &
 	);
 
+	void CreateTexture (
+		vk::PhysicalDevice,
+		vk::Device,
+		vk::CommandPool,
+		vk::Queue,
+		uint32_t queueFamilyIndex,
+		unsigned char * data,
+		vk::Extent2D extent,
+		unsigned int components,
+		vk::Image &,
+		vk::ImageView &,
+		vk::DeviceMemory &
+	);
+
 	vk::Sampler CreateDefaultSampler ( vk::Device );
 
 	void SetViewport ( vk::CommandBuffer, vk::Extent2D viewport );

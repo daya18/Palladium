@@ -3,6 +3,7 @@
 #include "Core.hpp"
 #include "Axel.hpp"
 #include "Recterer.hpp"
+#include "Texterer.hpp"
 #include "Camera.hpp"
 
 #include <vk_mem_alloc.h>
@@ -52,6 +53,7 @@ namespace pd
 
 		Axel axel;
 		Recterer recterer;
+		Texterer texterer;
 
 		float cameraMoveSensitivity { 0.01f };
 		float cameraTurnSensitivity { 0.2f };

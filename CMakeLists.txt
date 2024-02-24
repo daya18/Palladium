@@ -37,6 +37,9 @@ target_link_libraries ( Palladium PRIVATE Vulkan::Vulkan )
 add_subdirectory ( external/VulkanMemoryAllocator )
 target_link_libraries ( Palladium PRIVATE VulkanMemoryAllocator )
 
+# Add freetype
+add_subdirectory ( external/freetype-2.13.2 )
+target_link_libraries ( Palladium PRIVATE freetype )
 
 target_include_directories ( Palladium PRIVATE 
 	"external/OBJ-Loader/Source"
@@ -46,7 +49,7 @@ target_include_directories ( Palladium PRIVATE
 target_sources ( Palladium PRIVATE 
 	"source/Main.cpp"  
 	source/Core.cpp
- "source/Application.cpp"  "source/Axel.cpp" "source/Camera.cpp" "source/Recterer.cpp"  "source/IDManager.cpp"  "source/GUIManager.cpp")
+ "source/Application.cpp"  "source/Axel.cpp" "source/Camera.cpp" "source/Recterer.cpp"  "source/IDManager.cpp"  "source/GUIManager.cpp" "source/Texterer.cpp" "shader/source/TextShader.glsl.frag")
 
 # Setup precompiled headers
 target_precompile_headers ( Palladium PRIVATE source/PCH.hpp )

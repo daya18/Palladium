@@ -58,16 +58,11 @@ namespace pd
 		camera.SetPosition ( { 0.0f, 0.0f, 1.0f } );
 
 		axel.Initialize ( { physicalDevice, device, &queues, renderPass } );
+		recterer.Initialize ( { physicalDevice, device, &queues, renderPass, transferCommandPool } );
+		texterer.Initialize ( { physicalDevice, device, &queues, renderPass, transferCommandPool } );
+
 		axel.LoadScene ( "scene/Plane.obj" );
 		axel.SetCamera ( camera );
-
-		recterer.Initialize ( { physicalDevice, device, &queues, renderPass, transferCommandPool } );
-
-		int rectangle1 { recterer.CreateRectangle () };
-		int rectangle2 { recterer.CreateRectangle () };
-
-		recterer.SetRectangleTransform ( rectangle1, CreateTransformMatrix ( { 100, 100, 0 }, { 200, 200, 1 } ) );
-		recterer.SetRectangleTransform ( rectangle2, CreateTransformMatrix ( { 450, 100, 0 }, { 200, 200, 1 } ) );
 	}
 
 	Application::~Application ()
@@ -75,8 +70,8 @@ namespace pd
 		device.waitIdle ();
 
 		axel.Shutdown ();
-		
 		recterer.Shutdown ();
+		texterer.Shutdown ();
 
 		device.destroy ( renderFinishedFence );
 		device.destroy ( renderFinishedSemaphore );
@@ -144,6 +139,7 @@ namespace pd
 					camera.SetViewportSize ( windowSize );
 					axel.SetCamera ( camera );
 					recterer.SetViewportSize ( windowSize );
+					texterer.SetViewportSize ( windowSize );
 					break;
 
 				case SDL_WINDOWEVENT_MINIMIZED:
@@ -253,6 +249,7 @@ namespace pd
 		
 		axel.RecordRender ( renderCommandBuffer, swapchainExtent );
 		recterer.RecordRender ( renderCommandBuffer, swapchainExtent );
+		texterer.RecordRender ( renderCommandBuffer, swapchainExtent );
 
 		renderCommandBuffer.endRenderPass ();
 
