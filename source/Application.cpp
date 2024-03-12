@@ -60,6 +60,10 @@ namespace pd
 		axel.Initialize ( { physicalDevice, device, &queues, renderPass } );
 		recterer.Initialize ( { physicalDevice, device, &queues, renderPass, transferCommandPool } );
 		texterer.Initialize ( { physicalDevice, device, &queues, renderPass, transferCommandPool } );
+		guiManager.Initialize ( &recterer, &texterer );
+
+		guiManager.CreateButton ().SetText ( "Touch me ples" ).SetPosition ( { 500, 500 } );
+		btn = &guiManager.CreateButton ().SetText ( "Ples touch my bobs" ).SetPosition ( { 300, 500 } );
 
 		axel.LoadScene ( "scene/Plane.obj" );
 		axel.SetCamera ( camera );
@@ -110,6 +114,8 @@ namespace pd
 			HandleEvents ();
 
 			Update ();
+
+			btn->SetPosition ( { btn->GetPosition().x + 1.0f, btn->GetPosition ().y } );
 
 			if ( render )
 				Render ();
@@ -197,6 +203,8 @@ namespace pd
 				//	std::cout << x << ' ' << y << std::endl;
 				//	break;
 			}
+
+			guiManager.HandleEvent ( event );
 		}
 	}
 

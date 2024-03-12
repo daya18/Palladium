@@ -115,7 +115,7 @@ namespace pd
 	
 	void Recterer::SetViewportSize ( glm::vec2 const & size )
 	{
-		CameraData cameraData { glm::ortho ( 0.0f, size.x, size.y, 0.0f ) };
+		CameraData cameraData { glm::ortho ( 0.0f, size.x, size.y, 0.0f, -100.0f, 100.0f ) };
 
 		UpdateBuffer ( deps.physicalDevice, deps.device, deps.transferCommandPool,
 			deps.queues->transferQueue, cameraUniformBuffer, &cameraData, sizeof ( CameraData ) );

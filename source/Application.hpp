@@ -4,6 +4,7 @@
 #include "Axel.hpp"
 #include "Recterer.hpp"
 #include "Texterer.hpp"
+#include "gui/GUIManager.hpp"
 #include "Camera.hpp"
 
 #include <vk_mem_alloc.h>
@@ -54,6 +55,7 @@ namespace pd
 		Axel axel;
 		Recterer recterer;
 		Texterer texterer;
+		GUIManager guiManager;
 
 		float cameraMoveSensitivity { 0.01f };
 		float cameraTurnSensitivity { 0.2f };
@@ -61,5 +63,7 @@ namespace pd
 		glm::vec2 lastMousePosition {};
 		glm::vec3 cameraMoveDirection {};
 		Camera camera;
+
+		Button * btn;
 	};
 }

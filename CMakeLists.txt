@@ -49,7 +49,15 @@ target_include_directories ( Palladium PRIVATE
 target_sources ( Palladium PRIVATE 
 	"source/Main.cpp"  
 	source/Core.cpp
- "source/Application.cpp"  "source/Axel.cpp" "source/Camera.cpp" "source/Recterer.cpp"  "source/IDManager.cpp"  "source/GUIManager.cpp" "source/Texterer.cpp" "shader/source/TextShader.glsl.frag")
+	source/Application.cpp  
+	source/Axel.cpp 
+	source/Camera.cpp 
+	source/Recterer.cpp  
+	source/IDManager.cpp  
+	"source/gui/GUIManager.cpp" 
+	source/Texterer.cpp 
+	source/BetterType.cpp
+ "source/gui/Button.cpp")
 
 # Setup precompiled headers
 target_precompile_headers ( Palladium PRIVATE source/PCH.hpp )

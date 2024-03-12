@@ -1,15 +1,13 @@
 #include "Texterer.hpp"
 
-#include <freetype/freetype.h>
-
 namespace pd
 {
 	void Texterer::Initialize ( Dependencies const & deps )
 	{
 		this->deps = deps;
 
-		if ( FT_Init_FreeType ( &ftLibrary ) )
-			std::cout << "Freetype failed to initialize" << std::endl;
+		//if ( FT_Init_FreeType ( &ftLibrary ) )
+		//	std::cout << "Freetype failed to initialize" << std::endl;
 
 		descriptorPool = CreateDescriptorPool ( deps.device );
 		sampler = CreateDefaultSampler ( deps.device );
@@ -67,7 +65,7 @@ namespace pd
 		deps.device.destroy ( sampler );
 		deps.device.destroy ( descriptorPool );
 
-		FT_Done_FreeType ( ftLibrary );
+		//FT_Done_FreeType ( ftLibrary );
 	}
 
 	void Texterer::RecordRender ( vk::CommandBuffer commandBuffer, vk::Extent2D viewportExtent )
@@ -123,6 +121,13 @@ namespace pd
 		LoadGlyphs ( textData );
 		textIDManager.FreeID ( id );
 	}
+	
+	void Texterer::SetTextHeight ( int id, float height )
+	{
+		auto & textData { textDatas.at ( id ) };
+		textData.height = height;
+		LoadGlyphs ( textData );
+	}
 
 	void Texterer::SetText ( int id, std::string const & text )
 	{
@@ -142,6 +147,15 @@ namespace pd
 	{
 		auto & textData { textDatas.at ( id ) };
 		textData.position = position;
+		//LoadGlyphs ( textData );
+
+		for ( auto & glyphData : textData.glyphDatas )
+		{
+			glm::mat4 glyphTranslationMat { glm::translate ( glm::identity <glm::mat4> (), { textData.position + glyphData.position, 0.0f } ) };
+			glm::mat4 glyphScaleMat { glm::scale ( glm::identity <glm::mat4> (), { glyphData.scale, 1.0f } ) };
+
+			glyphData.transform = glyphTranslationMat * glyphScaleMat;
+		}
 	}
 
 	void Texterer::SetTextColor ( int id, glm::vec4 const & color )
@@ -159,6 +173,14 @@ namespace pd
 			deps.device.free ( glyphData.textureMemory );
 			deps.device.free ( descriptorPool, glyphData.descriptorSet );
 		}
+
+		glyphDatas.clear ();
+	}
+
+	glm::vec2 Texterer::GetTextSize ( int id )
+	{
+		auto & textData { textDatas.at ( id ) };
+		return textData.size;
 	}
 
 	void Texterer::LoadGlyphs ( TextData & textData )
@@ -168,37 +190,28 @@ namespace pd
 		if ( textData.text.empty () || textData.font.empty () )
 			return;
 
-		FT_Face face;
-		FT_New_Face ( ftLibrary, textData.font.data (), 0, &face );
-		FT_Set_Pixel_Sizes ( face, 0, 100 );
+		bt::Face face { btLibrary, textData.font };
+		bt::Text text { face, textData.text, static_cast <int> ( textData.height ) };
 
-		glm::vec2 penPosition { textData.position };
+		textData.size = text.GetSize ();
 
-		for ( auto const & ch : textData.text )
+		for ( auto const & glyph : text.GetGlyphs () )
 		{
-			FT_Load_Glyph ( face, FT_Get_Char_Index ( face, ch ), 0 );
-
-			if ( face->glyph->format != FT_GLYPH_FORMAT_BITMAP )
-				FT_Render_Glyph ( face->glyph, FT_RENDER_MODE_NORMAL );
-
-
-			glm::vec2 glyphPosition = penPosition + glm::vec2 { 
-				static_cast <float> ( face->glyph->metrics.horiBearingX / 64 ), 
-				-static_cast <float> ( face->glyph->metrics.horiBearingY / 64 ) 
-			};
-
-			if ( face->glyph->bitmap.buffer )
+			if ( glyph.bitmap.buffer )
 			{
 				GlyphData glyphData {};
 
-				glm::mat4 glyphTranslationMat { glm::translate ( glm::identity <glm::mat4> (), { glyphPosition, 0.0f } ) };
-				glm::mat4 glyphScaleMat { glm::scale ( glm::identity <glm::mat4> (), { face->glyph->metrics.width / 64, face->glyph->metrics.height / 64, 1 } ) };
+				glyphData.position = glyph.position;
+				glyphData.scale = glyph.size;
+
+				glm::mat4 glyphTranslationMat { glm::translate ( glm::identity <glm::mat4> (), { textData.position + glyph.position, 0.0f } ) };
+				glm::mat4 glyphScaleMat { glm::scale ( glm::identity <glm::mat4> (), { glyph.size, 1.0f } ) };
 
 				glyphData.transform = glyphTranslationMat * glyphScaleMat;
 
 				CreateTexture ( deps.physicalDevice, deps.device, deps.transferCommandPool,
 					deps.queues->transferQueue, deps.queues->transferQueueFamilyIndex,
-					face->glyph->bitmap.buffer, { face->glyph->bitmap.width, static_cast < uint32_t > ( face->glyph->bitmap.rows ) },
+					glyph.bitmap.buffer, { glyph.bitmap.width, static_cast < uint32_t > ( glyph.bitmap.rows ) },
 					1,
 					glyphData.texture, glyphData.textureView, glyphData.textureMemory );
 
@@ -214,11 +227,7 @@ namespace pd
 
 				textData.glyphDatas.push_back ( glyphData );
 			}
-
-			penPosition.x += face->glyph->metrics.horiAdvance / 64;
 		}
-
-		FT_Done_Face ( face );
 	}
 
 	vk::PipelineLayout Texterer::CreatePipelineLayout ()
