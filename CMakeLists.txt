@@ -54,7 +54,7 @@ target_sources ( Palladium PRIVATE
 	source/Camera.cpp 
 	source/Recterer.cpp  
 	source/IDManager.cpp  
-	"source/gui/GUIManager.cpp" 
+	 
 	source/Texterer.cpp 
 	source/BetterType.cpp
  "source/gui/Button.cpp")
