@@ -38,7 +38,7 @@ namespace pd::bt
 			glm::vec2 size;
 		};
 
-		Text ( Face &, std::string const & text, int height );
+		Text ( Face &, std::string const & text, int height, int linePadding = 0 );
 		~Text ();
 
 		std::vector <Glyph> const & GetGlyphs () const;

@@ -187,8 +187,7 @@ namespace pd
 			textures.push_back ( texture );
 		}
 
-		int index { 0 };
-		for ( auto const & objectTextureIndices : textureIndices )
+		for ( int index { 0 }; auto const & objectTextureIndices : textureIndices )
 		{
 			objectInfos [ index ].texturesDescriptorSet = AllocateDescriptorSet ( deps.device, descriptorPool, texturesDSetLayout );
 
@@ -264,23 +263,4 @@ namespace pd
 		}
 
 	}
-
-	//vk::ImageView Axel::GetTexture ( std::string const & filePath )
-	//{
-	//	//CreateTexture ( deps.physicalDevice, deps.device, transferCommandPool,
-	//	//	deps.queues->transferQueue, deps.queues->transferQueueFamilyIndex,
-	//	//	"image/TestImage.jpg", objectInfo.texImage, objectInfo.texImageView, objectInfo.texMemory );
-
-
-	//	//vk::DescriptorImageInfo imageInfo { {}, objectInfo.texImageView, vk::ImageLayout::eShaderReadOnlyOptimal };
-
-	//	//std::vector <vk::WriteDescriptorSet> writes {
-	//	//	{ objectInfo.materialDescriptorSet, 0, 0, 1, vk::DescriptorType::eUniformBuffer, {}, &bufferInfo },
-	//	//	{ objectInfo.materialDescriptorSet, 2, 0, 1, vk::DescriptorType::eSampledImage, &imageInfo }
-	//	//};
-
-	//	//deps.device.updateDescriptorSets ( writes, {} );
-	//	//{ materialDescriptorSet, 2, 0, 1, vk::DescriptorType::eSampledImage, &imageInfo }
-	//	return {};
-	//}
 }

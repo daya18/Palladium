@@ -62,7 +62,7 @@ namespace pd
 		texterer.Initialize ( { physicalDevice, device, &queues, renderPass, transferCommandPool } );
 
 		button1 = Button { recterer, texterer }
-			.SetText ( "Touch me ples" )
+			.SetText ( "Touch me ples\nplease" )
 			.SetPosition ( { 700, 500 } )
 			.SetCallback ( [] () { std::cout << "Thanks for touching" << std::endl; } );
 
@@ -70,6 +70,8 @@ namespace pd
 			.SetText ( "Ples touch my bobs" )
 			.SetPosition ( { 300, 500 } )
 			.SetCallback ( [] () { std::cout << "Thanks for touching my bobs" << std::endl; } );
+
+		label1 = Label { recterer, texterer }.SetText ( "Jeff:Hello\nBob:Send pp\nEnd" ).SetPosition ( { 10, 10 } );
 
 		axel.LoadScene ( "scene/Plane.obj" );
 		axel.SetCamera ( camera );

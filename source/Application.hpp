@@ -5,6 +5,7 @@
 #include "Recterer.hpp"
 #include "Texterer.hpp"
 #include "gui/Button.hpp"
+#include "gui/Label.hpp"
 #include "Camera.hpp"
 
 #include <vk_mem_alloc.h>
@@ -65,5 +66,6 @@ namespace pd
 
 		Button button1;
 		Button button2;
+		Label label1;
 	};
 }

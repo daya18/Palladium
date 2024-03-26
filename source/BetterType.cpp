@@ -23,61 +23,95 @@ namespace pd::bt
 		FT_Done_Face ( face );
 	}
 
-	Text::Text ( Face & face, std::string const & text, int height )
+	Text::Text ( Face & face, std::string const & text, int height, int linePadding )
 		: face ( face )
 	{
-		std::vector <FT_Glyph_Metrics> glyphMetrics;
-		std::vector <FT_Bitmap> glyphBitmaps;
+		if ( linePadding == 0 )
+			linePadding = height / 2;
+
+		std::vector < std::vector < FT_Glyph_Metrics > > lineGlyphMetrics { {} };
+		std::vector < std::vector < FT_Bitmap > > lineGlyphBitmaps { {} };
 
 		// Get glyph bitmap and metrics
 		for ( char ch : text )
 		{
+			if ( ch == '\n' )
+			{
+				lineGlyphMetrics.push_back ( {} );
+				lineGlyphBitmaps.push_back ( {} );
+				continue;
+			}
+
 			FT_Set_Pixel_Sizes ( face.face, 0, height );
 			FT_Load_Glyph ( face.face, FT_Get_Char_Index ( face.face, ch ), 0 );
 
 			if ( face.face->glyph->format != FT_GLYPH_FORMAT_BITMAP )
 				FT_Render_Glyph ( face.face->glyph, FT_RENDER_MODE_NORMAL );
 
-			glyphMetrics.push_back ( face.face->glyph->metrics );
+			lineGlyphMetrics.back().push_back (face.face->glyph->metrics);
 
-			glyphBitmaps.push_back ( {} );
-			FT_Bitmap_Copy ( face.library.library, &face.face->glyph->bitmap, &glyphBitmaps.back () );
+			lineGlyphBitmaps.back ().push_back ( {} );
+			FT_Bitmap_Copy ( face.library.library, &face.face->glyph->bitmap, &lineGlyphBitmaps.back ().back() );
 		}
 
-		float maxAscent { -std::numeric_limits <float>::infinity () };
-		float maxDescent { -std::numeric_limits <float>::infinity () };
+		std::vector <float> lineMaxAscents;
+		std::vector <float> lineMaxDescents;
 
-		for ( auto const & metrics : glyphMetrics )
+		for ( auto const & glyphMetrics : lineGlyphMetrics )
 		{
-			maxAscent = glm::max ( maxAscent, static_cast < float > ( metrics.horiBearingY / 64 ) );
-			maxDescent = glm::max <float> ( maxDescent, ( metrics.height - metrics.horiBearingY ) / 64 );
+			lineMaxAscents.push_back ( { - std::numeric_limits <float>::infinity () } );
+			lineMaxDescents.push_back ( { -std::numeric_limits <float>::infinity () } );
+
+			for ( auto const & metrics : glyphMetrics )
+			{
+				lineMaxAscents.back () = glm::max ( lineMaxAscents.back (), static_cast < float > ( metrics.horiBearingY / 64 ) );
+				lineMaxDescents.back () = glm::max <float> ( lineMaxDescents.back (), ( metrics.height - metrics.horiBearingY ) / 64 );
+			}
 		}
+		
+		int lineCount { static_cast <int> ( std::count ( text.begin (), text.end (), '\n' ) ) + 1 };
+		this->size = { 0.0f, 0.0f };
+		glm::vec2 penPosition { 0.0f, lineMaxAscents.front () };
 
-		this->size = { 0.0f, glm::abs ( maxAscent ) + glm::abs ( maxDescent ) };
 
-		glm::vec2 penPosition { 0.0f, maxAscent };
-
-		int glyphIndex { 0 };
 		// Calculate glyph positions
-		for ( auto const & metrics : glyphMetrics )
+		auto lineAdvance {
+			( face.face->ascender - face.face->descender ) / 64 * 0.5 + linePadding
+		};
+
+		int lineIndex { 0 };
+		for ( auto const & glyphMetrics : lineGlyphMetrics )
 		{
-			glm::vec2 position { penPosition + glm::vec2 {
-				static_cast < float > ( metrics.horiBearingX / 64 ),
-				-static_cast < float > ( metrics.horiBearingY / 64 )
-			} };
+			float lineWidth { 0.0f };
+			int glyphIndex { 0 };
+			for ( auto const & metrics : glyphMetrics )
+			{
+				glm::vec2 position { penPosition + glm::vec2 {
+					static_cast < float > ( metrics.horiBearingX / 64 ),
+					-static_cast < float > ( metrics.horiBearingY / 64 )
+				} };
 
-			glm::vec2 size {
-				static_cast < float > ( metrics.width / 64 ),
-				static_cast < float > ( metrics.height / 64 )
-			};
+				glm::vec2 size {
+					static_cast < float > ( metrics.width / 64 ),
+					static_cast < float > ( metrics.height / 64 )
+				};
 
-			glyphs.push_back ( { glyphBitmaps [ glyphIndex ], position, size } );
+				glyphs.push_back ( { lineGlyphBitmaps [lineIndex] [ glyphIndex ], position, size } );
 
-			penPosition.x += metrics.horiAdvance / 64;
-			this->size.x += static_cast < float > ( metrics.horiAdvance / 64 );
+				penPosition.x += metrics.horiAdvance / 64;
+				lineWidth += static_cast < float > ( metrics.horiAdvance / 64 );
 
-			++glyphIndex;
+				++glyphIndex;
+			}
+
+			this->size.x = glm::max ( this->size.x, lineWidth );
+			penPosition.x = 0.0f;
+			penPosition.y += lineAdvance;
+			
+			++lineIndex;
 		}
+
+		this->size.y = penPosition.y - lineAdvance + lineMaxDescents.back ();
 	}
 
 	Text::~Text ()

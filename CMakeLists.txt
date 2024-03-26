@@ -57,7 +57,7 @@ target_sources ( Palladium PRIVATE
 	 
 	source/Texterer.cpp 
 	source/BetterType.cpp
- "source/gui/Button.cpp")
+ "source/gui/Button.cpp" "source/gui/Label.cpp")
 
 # Setup precompiled headers
 target_precompile_headers ( Palladium PRIVATE source/PCH.hpp )

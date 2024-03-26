@@ -3,6 +3,10 @@
 #include "Core.hpp"
 #include "Camera.hpp"
 
+/*
+	A simple static scene renderer
+*/
+
 namespace pd
 {
 	class Axel
